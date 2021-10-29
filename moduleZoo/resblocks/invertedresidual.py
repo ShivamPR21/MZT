@@ -18,9 +18,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from typing import Any, Callable, List, Optional
 
 import torch.nn as nn
+from moduleZoo import ConvNormActivation
 from torch import Tensor
-
-from ..convolution import ConvNormActivation
 
 
 class InvertedResidual(nn.Module):
