@@ -15,7 +15,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 '''
 
-from typing import Any, Callable, List, Optional
+from typing import Callable, List, Optional
 
 import torch.nn as nn
 from moduleZoo import ConvNormActivation
@@ -40,8 +40,6 @@ class InvertedResidual(nn.Module):
         """
         super().__init__()
         assert stride in [1, 2]
-
-        stride = stride
 
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d

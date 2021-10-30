@@ -16,5 +16,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 '''
 
 from .invertedresidual import InvertedResidual
+from .shuffleresidual import ShuffleInvertedResidual
 
-__all__ = ('InvertedResidual',)
+__all__ = ('InvertedResidual', 'ShuffleInvertedResidual',)
