@@ -51,8 +51,8 @@ class ShuffleInvertedResidual(nn.Module):
         layers: List[nn.Module] = []
         if expansion_ratio != 1:
             layers.append(ConvNormActivation(in_channels, hidden_channels, kernel_size=1,
-                                             stride=stride, norm_layer=norm_layer,
-                                             activation_layer=nn.Relu6, groups=grouping))
+                                             stride=stride, padding=0, norm_layer=norm_layer,
+                                             activation_layer=nn.ReLU6, groups=grouping))
 
         layers.extend(
             [
