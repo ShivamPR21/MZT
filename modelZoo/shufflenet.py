@@ -18,8 +18,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from typing import List
 
 import torch.nn as nn
-from moduleZoo.resblocks import ShuffleInvertedResidual
 from torch import Tensor
+
+from ..moduleZoo.resblocks import ShuffleInvertedResidual
 
 
 class ShuffleNet(nn.Module):

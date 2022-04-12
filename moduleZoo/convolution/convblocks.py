@@ -15,12 +15,12 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 '''
 
-from typing import Callable, Optional
+from typing import Callable, List, Optional, Tuple
 
 import torch.nn as nn
 
 
-class ConvNormActivation(nn.Sequential):
+class Conv2DNormActivation(nn.Sequential):
     def __init__(
         self,
         in_channels: int,
@@ -32,6 +32,8 @@ class ConvNormActivation(nn.Sequential):
         norm_layer: Optional[Callable[..., nn.Module]] = nn.BatchNorm2d,
         activation_layer: Optional[Callable[..., nn.Module]] = nn.ReLU,
         dilation: int = 1,
+        transposed: bool = False,
+        output_padding: Tuple[int, int] = (0, 0),
         inplace: bool = True,
     ) -> None:
         """Typical Convolution Normalization and Activation stack for easier implementation
@@ -50,18 +52,36 @@ class ConvNormActivation(nn.Sequential):
         """
         if padding is None:
             padding = (kernel_size - 1) // 2 * dilation
-        layers = [
-            nn.Conv2d(
-                in_channels,
-                out_channels,
-                kernel_size,
-                stride,
-                padding,
-                dilation=dilation,
-                groups=groups,
-                bias=norm_layer is None,
-            )
-        ]
+
+        layers:List[nn.Module] = None
+
+        if transposed:
+            layers = [
+                nn.ConvTranspose2d(
+                    in_channels,
+                    out_channels,
+                    kernel_size,
+                    stride,
+                    padding,
+                    output_padding=output_padding,
+                    dilation=dilation,
+                    groups=groups,
+                    bias=norm_layer is None,
+                )
+            ]
+        else:
+            layers = [
+                nn.Conv2d(
+                    in_channels,
+                    out_channels,
+                    kernel_size,
+                    stride,
+                    padding,
+                    dilation=dilation,
+                    groups=groups,
+                    bias=norm_layer is None,
+                )
+            ]
         if norm_layer is not None:
             layers.append(norm_layer(out_channels))
         if activation_layer is not None:

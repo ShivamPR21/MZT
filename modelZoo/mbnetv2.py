@@ -18,8 +18,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from typing import Callable, List, Optional
 
 import torch.nn as nn
-from moduleZoo import ConvNormActivation, InvertedResidual
 from torch import Tensor
+
+from ..moduleZoo import Conv2DNormActivation, InvertedResidual
 
 
 # Taken from Pytorch vision repo.
@@ -78,7 +79,7 @@ class MobileNetV2(nn.Module):
         in_channel = _make_divisible(in_channel * width_multiplier, round_nearest)
         self.out_channel = _make_divisible(out_channel * max(1.0, width_multiplier), round_nearest)
         features: List[nn.Module] = [
-            ConvNormActivation(in_activation_channel, in_channel, stride=2, norm_layer=norm_layer, activation_layer=nn.ReLU6)
+            Conv2DNormActivation(in_activation_channel, in_channel, stride=2, norm_layer=norm_layer, activation_layer=nn.ReLU6)
         ]
         # building inverted residual blocks
         for t, c, n, s in inverted_residual_setting:
@@ -89,7 +90,7 @@ class MobileNetV2(nn.Module):
                 in_channel = out_channel
         # building last several layers
         features.append(
-            ConvNormActivation(
+            Conv2DNormActivation(
                 in_channel, self.out_channel, kernel_size=1, norm_layer=norm_layer, activation_layer=nn.ReLU6
             )
         )
