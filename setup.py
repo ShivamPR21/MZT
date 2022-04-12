@@ -2,6 +2,8 @@ import os
 
 from setuptools import setup
 
+import moduleZoo
+
 
 # Utility function to read the README file.
 # Used for the long_description.  It's nice, because now 1) we have a top level
@@ -20,7 +22,7 @@ setup(
     license = "AGPLv3",
     keywords = "DeepLearning Pytorch Modules",
     url = "https://github.com/ShivamPR21/ModuleZooTorch.git",
-    packages=['moduleZoo', 'modelZoo'],
+    packages=['moduleZoo', 'moduleZoo.convolution', 'moduleZoo.resblocks', 'modelZoo'],
     long_description=read('README.md'),
     classifiers=[
         "Development Status :: Alpha",
