@@ -25,7 +25,7 @@ from torch.nn import ChannelShuffle
 from ..convolution import Conv2DNormActivation
 
 
-class ShuffleInvertedResidual(nn.Module):
+class Conv2DShuffleInvertedResidual(nn.Module):
     def __init__(self,
                  in_channels: int,
                  out_channels: int,

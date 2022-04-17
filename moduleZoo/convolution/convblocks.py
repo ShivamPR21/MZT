@@ -25,16 +25,16 @@ class Conv2DNormActivation(nn.Sequential):
         self,
         in_channels: int,
         out_channels: int,
-        kernel_size: int = 3,
-        stride: int = 1,
-        padding: Optional[int] = None,
-        groups: int = 1,
+        kernel_size: Optional[int] = 3,
+        stride: Optional[int] = 1,
+        padding: Optional[int] = 0,
+        groups: Optional[int] = 1,
+        dilation: Optional[int] = 1,
+        bias: Optional[bool] = True,
+        transposed: Optional[bool] = False,
+        output_padding: Optional[Tuple[int, int]] = (0, 0),
         norm_layer: Optional[Callable[..., nn.Module]] = nn.BatchNorm2d,
         activation_layer: Optional[Callable[..., nn.Module]] = nn.ReLU,
-        dilation: int = 1,
-        transposed: bool = False,
-        output_padding: Tuple[int, int] = (0, 0),
-        inplace: bool = True,
     ) -> None:
         """Typical Convolution Normalization and Activation stack for easier implementation
 
@@ -50,7 +50,7 @@ class Conv2DNormActivation(nn.Sequential):
             dilation (int, optional): Dilation used in convolution (passed in nn.Conv2D). Defaults to 1.
             inplace (bool, optional): Whether to use inplace operations or not. Defaults to True.
         """
-        if padding is None:
+        if padding == 'stride_effective':
             padding = (kernel_size - 1) // 2 * dilation
 
         layers:List[nn.Module] = None
@@ -66,7 +66,7 @@ class Conv2DNormActivation(nn.Sequential):
                     output_padding=output_padding,
                     dilation=dilation,
                     groups=groups,
-                    bias=norm_layer is None,
+                    bias=bias,
                 )
             ]
         else:
@@ -79,12 +79,12 @@ class Conv2DNormActivation(nn.Sequential):
                     padding,
                     dilation=dilation,
                     groups=groups,
-                    bias=norm_layer is None,
+                    bias=bias,
                 )
             ]
         if norm_layer is not None:
             layers.append(norm_layer(out_channels))
         if activation_layer is not None:
-            layers.append(activation_layer(inplace=inplace))
+            layers.append(activation_layer())
         super().__init__(*layers)
         self.out_channels = out_channels

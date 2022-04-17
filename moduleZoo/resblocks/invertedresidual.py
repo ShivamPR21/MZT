@@ -23,7 +23,7 @@ from torch import Tensor
 from ..convolution import Conv2DNormActivation
 
 
-class InvertedResidual(nn.Module):
+class Conv2DInvertedResidual(nn.Module):
     def __init__(self,
                  in_channels: int,
                  out_channels: int,
