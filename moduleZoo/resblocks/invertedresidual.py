@@ -18,11 +18,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from typing import Callable, List, Optional
 
 import torch.nn as nn
-from moduleZoo import ConvNormActivation
 from torch import Tensor
 
+from ..convolution import Conv2DNormActivation
 
-class InvertedResidual(nn.Module):
+
+class Conv2DInvertedResidual(nn.Module):
     def __init__(self,
                  in_channels: int,
                  out_channels: int,
@@ -49,11 +50,11 @@ class InvertedResidual(nn.Module):
 
         layers: List[nn.Module] = []
         if expansion_ratio != 1:
-            layers.append(ConvNormActivation(in_channels, hidden_channels, kernel_size=1,
+            layers.append(Conv2DNormActivation(in_channels, hidden_channels, kernel_size=1,
                                              stride=stride, norm_layer=norm_layer, activation_layer=nn.Relu6))
         layers.extend(
             [
-                ConvNormActivation(
+                Conv2DNormActivation(
                     hidden_channels,
                     hidden_channels,
                     stride = stride,

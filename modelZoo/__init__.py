@@ -16,5 +16,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 '''
 
 from .mbnetv2 import MobileNetV2
+from .shufflenet import ShuffleInvertedResidual
 
-__all__ = ('MobileNetV2',)
+__all__ = ('MobileNetV2', 'ShuffleInvertedResidual')

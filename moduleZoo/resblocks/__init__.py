@@ -15,7 +15,13 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 '''
 
-from .invertedresidual import InvertedResidual
-from .shuffleresidual import ShuffleInvertedResidual
+from .invertedresidual import Conv2DInvertedResidual
+from .residual import (
+    Conv2DInvertedResidualBlock,
+    Conv2DResidualBlock,
+    ConvResidualBlock1d,
+)
+from .shuffleresidual import Conv2DShuffleInvertedResidual
 
-__all__ = ('InvertedResidual', 'ShuffleInvertedResidual',)
+__all__ = ('Conv2DInvertedResidual', 'Conv2DShuffleInvertedResidual',
+           'Conv2DResidualBlock', 'Conv2DInvertedResidualBlock', 'ConvResidualBlock1d')

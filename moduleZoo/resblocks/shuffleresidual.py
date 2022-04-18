@@ -19,12 +19,13 @@ from typing import Callable, List, Optional
 
 import torch
 import torch.nn as nn
-from moduleZoo import ConvNormActivation
 from torch import Tensor
 from torch.nn import ChannelShuffle
 
+from ..convolution import Conv2DNormActivation
 
-class ShuffleInvertedResidual(nn.Module):
+
+class Conv2DShuffleInvertedResidual(nn.Module):
     def __init__(self,
                  in_channels: int,
                  out_channels: int,
@@ -50,14 +51,14 @@ class ShuffleInvertedResidual(nn.Module):
 
         layers: List[nn.Module] = []
         if expansion_ratio != 1:
-            layers.append(ConvNormActivation(in_channels, hidden_channels, kernel_size=1,
+            layers.append(Conv2DNormActivation(in_channels, hidden_channels, kernel_size=1,
                                              stride=stride, padding=0, norm_layer=norm_layer,
                                              activation_layer=nn.ReLU6, groups=grouping))
 
         layers.extend(
             [
                 ChannelShuffle(grouping),
-                ConvNormActivation(hidden_channels,
+                Conv2DNormActivation(hidden_channels,
                                    hidden_channels,
                                    kernel_size=kernel_size,
                                    stride = stride,
