@@ -16,8 +16,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 '''
 
 from .invertedresidual import Conv2DInvertedResidual
-from .residual import Conv2DInvertedResidualBlock, Conv2DResidualBlock
+from .residual import (
+    Conv2DInvertedResidualBlock,
+    Conv2DResidualBlock,
+    ConvResidualBlock1d,
+)
 from .shuffleresidual import Conv2DShuffleInvertedResidual
 
 __all__ = ('Conv2DInvertedResidual', 'Conv2DShuffleInvertedResidual',
-           'Conv2DResidualBlock', 'Conv2DInvertedResidualBlock')
+           'Conv2DResidualBlock', 'Conv2DInvertedResidualBlock', 'ConvResidualBlock1d')

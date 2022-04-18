@@ -25,16 +25,16 @@ class Conv2DNormActivation(nn.Sequential):
         self,
         in_channels: int,
         out_channels: int,
-        kernel_size: Optional[int] = 3,
-        stride: Optional[int] = 1,
-        padding: Optional[int] = 0,
-        groups: Optional[int] = 1,
-        dilation: Optional[int] = 1,
-        bias: Optional[bool] = True,
-        transposed: Optional[bool] = False,
-        output_padding: Optional[Tuple[int, int]] = (0, 0),
-        norm_layer: Optional[Callable[..., nn.Module]] = nn.BatchNorm2d,
-        activation_layer: Optional[Callable[..., nn.Module]] = nn.ReLU,
+        kernel_size: int = 3,
+        stride: int = 1,
+        padding: int = 0,
+        groups: int = 1,
+        dilation: int = 1,
+        bias: bool = True,
+        transposed: bool = False,
+        output_padding: Tuple[int, int] = (0, 0),
+        norm_layer: Optional[Callable[..., nn.Module]] = None,
+        activation_layer: Optional[Callable[..., nn.Module]] = None,
     ) -> None:
         """Typical Convolution Normalization and Activation stack for easier implementation
 
@@ -72,6 +72,75 @@ class Conv2DNormActivation(nn.Sequential):
         else:
             layers = [
                 nn.Conv2d(
+                    in_channels,
+                    out_channels,
+                    kernel_size,
+                    stride,
+                    padding,
+                    dilation=dilation,
+                    groups=groups,
+                    bias=bias,
+                )
+            ]
+        if norm_layer is not None:
+            layers.append(norm_layer(out_channels))
+        if activation_layer is not None:
+            layers.append(activation_layer())
+        super().__init__(*layers)
+        self.out_channels = out_channels
+
+class ConvNormActivation1d(nn.Sequential):
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int = 3,
+        stride: int = 1,
+        padding: int = 0,
+        groups: int = 1,
+        dilation: int = 1,
+        bias: bool = True,
+        transposed: bool = False,
+        output_padding: int = 0,
+        norm_layer: Optional[Callable[..., nn.Module]] = None,
+        activation_layer: Optional[Callable[..., nn.Module]] = None,
+    ) -> None:
+        """Typical Convolution Normalization and Activation stack for easier implementation
+
+        Args:
+            in_channels (int): Number of input channels
+            out_channels (int): Number of output channels
+            kernel_size (int, optional): Kernel size for convolution. Defaults to 3.
+            stride (int, optional): Stride value for convolution. Defaults to 1.
+            padding (Optional[int], optional): Padding value, (passed to nn.Conv2D). Defaults to None.
+            groups (int, optional): Number of groups input tensor will be divided, (passed to nn.Conv2D). Defaults to 1.
+            norm_layer (Optional[Callable[..., nn.Module]], optional): Normalization layer. Defaults to nn.BatchNorm2d.
+            activation_layer (Optional[Callable[..., nn.Module]], optional): Activation function. Defaults to nn.ReLU.
+            dilation (int, optional): Dilation used in convolution (passed in nn.Conv2D). Defaults to 1.
+            inplace (bool, optional): Whether to use inplace operations or not. Defaults to True.
+        """
+        if padding == 'stride_effective':
+            padding = (kernel_size - 1) // 2 * dilation
+
+        layers:List[nn.Module] = None
+
+        if transposed:
+            layers = [
+                nn.ConvTranspose1d(
+                    in_channels,
+                    out_channels,
+                    kernel_size,
+                    stride,
+                    padding,
+                    output_padding=output_padding,
+                    dilation=dilation,
+                    groups=groups,
+                    bias=bias,
+                )
+            ]
+        else:
+            layers = [
+                nn.Conv1d(
                     in_channels,
                     out_channels,
                     kernel_size,
