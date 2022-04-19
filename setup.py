@@ -22,7 +22,7 @@ setup(
     license = "AGPLv3",
     keywords = "DeepLearning Pytorch Modules",
     url = "https://github.com/ShivamPR21/ModuleZooTorch.git",
-    packages=['moduleZoo', 'moduleZoo.convolution', 'moduleZoo.resblocks', 'modelZoo'],
+    packages=['moduleZoo', 'moduleZoo.convolution', 'moduleZoo.resblocks', 'moduleZoo.attention', 'modelZoo'],
     long_description=read('README.md'),
     classifiers=[
         "Development Status :: Alpha",
