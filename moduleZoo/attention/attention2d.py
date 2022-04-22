@@ -14,7 +14,7 @@ class SelfAttention2d(nn.Module):
         self.query_conv = nn.Conv2d(in_channels = in_dim , out_channels = in_dim//8 , kernel_size= 1)
         self.key_conv = nn.Conv2d(in_channels = in_dim , out_channels = in_dim//8 , kernel_size= 1)
         self.value_conv = nn.Conv2d(in_channels = in_dim , out_channels = in_dim , kernel_size= 1)
-        self.gamma = nn.Parameter(torch.rand(1))
+        self.gamma = nn.Parameter(torch.rand(1)+0.001)
 
         self.softmax = nn.Softmax(dim=-1)
 
@@ -38,6 +38,9 @@ class SelfAttention2d(nn.Module):
         out = (self.gamma*out + x)/(1 + self.gamma)
         return out, attention
 
+    def shape(self, in_shape: int):
+        return in_shape
+
 
 class SelfAttention1d(nn.Module):
     """ Self attention Layer"""
@@ -49,7 +52,7 @@ class SelfAttention1d(nn.Module):
         self.query_conv = nn.Conv1d(in_channels = in_dim , out_channels = in_dim//8 , kernel_size = 1)
         self.key_conv = nn.Conv1d(in_channels = in_dim , out_channels = in_dim//8 , kernel_size = 1)
         self.value_conv = nn.Conv1d(in_channels = in_dim , out_channels = in_dim , kernel_size = 1)
-        self.gamma = nn.Parameter(torch.rand(1))
+        self.gamma = nn.Parameter(torch.rand(1)+0.001)
 
         self.softmax = nn.Softmax(dim=-1)
 
@@ -60,7 +63,6 @@ class SelfAttention1d(nn.Module):
             returns :
                 out : self attention value + input feature
         """
-        m_batchsize,C,n = x.size()
         proj_query = self.query_conv(x).permute(0,2,1) # B X N X (C)
         proj_key = self.key_conv(x) # B X C x (N)
 
@@ -73,3 +75,6 @@ class SelfAttention1d(nn.Module):
 
         out = (self.gamma*out + x)/(1 + self.gamma)
         return out, attention
+
+    def shape(self, in_shape: int):
+        return in_shape

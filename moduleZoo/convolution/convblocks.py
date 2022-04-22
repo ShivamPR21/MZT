@@ -15,12 +15,12 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 '''
 
-from typing import Callable, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import torch.nn as nn
 
 
-class Conv2DNormActivation(nn.Sequential):
+class ConvNormActivation2d(nn.Sequential):
     def __init__(
         self,
         in_channels: int,
@@ -52,6 +52,16 @@ class Conv2DNormActivation(nn.Sequential):
         """
         if padding == 'stride_effective':
             padding = (kernel_size - 1) // 2 * dilation
+
+        self.cfg: Dict[str, Any] = {'in_channels': in_channels,
+                    'out_channels': out_channels,
+                    'kernel_size': kernel_size,
+                    'stride': stride,
+                    'output_padding': output_padding,
+                    'dilation': dilation,
+                    'groups': groups,
+                    'bias': bias,
+                    'transposed': transposed}
 
         layers:List[nn.Module] = None
 
@@ -87,7 +97,21 @@ class Conv2DNormActivation(nn.Sequential):
         if activation_layer is not None:
             layers.append(activation_layer())
         super().__init__(*layers)
-        self.out_channels = out_channels
+        self.cfg.update({'dim_cnst': (2 * padding - dilation * ( kernel_size - 1 ) - 1)})
+
+    def shape(self, in_shape: Tuple[int, int]):
+        H, W = in_shape
+        H_out, W_out = None, None
+
+        if not self.cfg['transposed']:
+            H_out = (H + self.cfg['dim_cnst'])//self.cfg['stride']+1
+            W_out = (W + self.cfg['dim_cnst'])//self.cfg['stride']+1
+        else:
+            H_out = (H-1) * self.cfg['stride'] - self.cfg['dim_cnst'] + self.cfg['output_padding'][0] + 1
+            W_out = (W-1) * self.cfg['stride'] - self.cfg['dim_cnst'] + self.cfg['output_padding'][1] + 1
+
+        return H_out, W_out
+
 
 class ConvNormActivation1d(nn.Sequential):
     def __init__(
@@ -121,6 +145,16 @@ class ConvNormActivation1d(nn.Sequential):
         """
         if padding == 'stride_effective':
             padding = (kernel_size - 1) // 2 * dilation
+
+        self.cfg: Dict[str, Any] = {'in_channels': in_channels,
+                                    'out_channels': out_channels,
+                                    'kernel_size': kernel_size,
+                                    'stride': stride,
+                                    'output_padding': output_padding,
+                                    'dilation': dilation,
+                                    'groups': groups,
+                                    'bias': bias,
+                                    'transposed': transposed}
 
         layers:List[nn.Module] = None
 
@@ -156,4 +190,15 @@ class ConvNormActivation1d(nn.Sequential):
         if activation_layer is not None:
             layers.append(activation_layer())
         super().__init__(*layers)
-        self.out_channels = out_channels
+        self.cfg.update({'dim_cnst': (2 * padding - dilation * ( kernel_size - 1 ) - 1)})
+
+    def shape(self, in_shape: int):
+        L = in_shape
+        L_out = None
+
+        if not self.cfg['transposed']:
+            L_out = (L + self.cfg['dim_cnst'])//self.cfg['stride']+1
+        else:
+            L_out = (L-1) * self.cfg['stride'] - self.cfg['dim_cnst'] + self.cfg['output_padding'] + 1
+
+        return L_out

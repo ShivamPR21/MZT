@@ -15,13 +15,12 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 '''
 
-from .invertedresidual import Conv2DInvertedResidual
-from .residual import (
-    Conv2DInvertedResidualBlock,
-    Conv2DResidualBlock,
-    ConvResidualBlock1d,
+from .bottleneckresidual import (
+    ConvBottleNeckResidualBlock1d,
+    ConvBottleNeckResidualBlock2d,
 )
-from .shuffleresidual import Conv2DShuffleInvertedResidual
+from .invertedresidual import ConvInvertedResidualBlock1d, ConvInvertedResidualBlock2d
+from .residual import ConvResidualBlock1d, ConvResidualBlock2d
 
-__all__ = ('Conv2DInvertedResidual', 'Conv2DShuffleInvertedResidual',
-           'Conv2DResidualBlock', 'Conv2DInvertedResidualBlock', 'ConvResidualBlock1d')
+__all__ = ('ConvInvertedResidualBlock2d', 'ConvInvertedResidualBlock1d', 'ConvResidualBlock2d', 'ConvResidualBlock1d',
+           'ConvBottleNeckResidualBlock1d', 'ConvBottleNeckResidualBlock2d')
