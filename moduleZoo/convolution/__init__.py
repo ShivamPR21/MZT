@@ -19,4 +19,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from .convblocks import ConvNormActivation1d, ConvNormActivation2d
 from .invertedconvblocks import ConvInvertedBlock1d, ConvInvertedBlock2d
 
-__all__ = ('ConvNormActivation1d', 'ConvNormActivation2d', 'ConvInvertedBlock1d', 'ConvInvertedBlock2d')
+__all__ = ('ConvNormActivation1d',
+           'ConvNormActivation2d',
+           'ConvInvertedBlock1d',
+           'ConvInvertedBlock2d')

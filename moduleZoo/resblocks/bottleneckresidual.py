@@ -1,4 +1,4 @@
-from typing import Callable, Optional, Tuple
+from typing import Callable, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -12,8 +12,8 @@ class ConvBottleNeckResidualBlock2d(nn.Module):
                  in_channels: int,
                  reduction_ratio: float,
                  out_channels: Optional[int] = None,
-                 kernel_size: int = 3,
-                 stride: int = 1,
+                 kernel_size: Union[int, Tuple[int, int]] = 3,
+                 stride: Union[int, Tuple[int, int]] = 1,
                  norm_layer: Optional[Callable[..., nn.Module]] = None,
                  activation_layer: Optional[Callable[..., nn.Module]] = nn.ReLU6) -> None:
         super().__init__()
@@ -40,18 +40,18 @@ class ConvBottleNeckResidualBlock2d(nn.Module):
         self.conv2 = ConvNormActivation2d(hidden_channels,
                                           hidden_channels,
                                           kernel_size,
-                                          padding='same',
+                                          padding='stride_effective',
                                           bias=True if norm_layer is None else False,
                                           norm_layer=norm_layer,
-                                          activation_layer=None)
+                                          activation_layer=None) # TODO@ShivamPR21: #8 Padding `same` applied though proxy (`stride_effective, stride=1`) for onnx support
 
         self.conv3 = ConvNormActivation2d(hidden_channels,
                                           out_channels,
                                           1,
-                                          padding='same',
+                                          padding='stride_effective',
                                           bias=True if norm_layer is None else False,
                                           norm_layer=norm_layer,
-                                          activation_layer=None)
+                                          activation_layer=None) # TODO@ShivamPR21: #8 Padding `same` applied though proxy (`stride_effective, stride=1`) for onnx support
 
         self.projection = ConvNormActivation2d(in_channels,
                                                 out_channels,
@@ -92,8 +92,8 @@ class ConvBottleNeckResidualBlock1d(nn.Module):
                  in_channels: int,
                  reduction_ratio: float,
                  out_channels: Optional[int] = None,
-                 kernel_size: int = 3,
-                 stride: int = 1,
+                 kernel_size: Union[int, Tuple[int, int]] = 3,
+                 stride: Union[int, Tuple[int, int]] = 1,
                  norm_layer: Optional[Callable[..., nn.Module]] = None,
                  activation_layer: Optional[Callable[..., nn.Module]] = None) -> None:
         super().__init__()
@@ -119,18 +119,18 @@ class ConvBottleNeckResidualBlock1d(nn.Module):
         self.conv2 = ConvNormActivation1d(hidden_channels,
                                           hidden_channels,
                                           kernel_size,
-                                          padding='same',
+                                          padding='stride_effective',
                                           bias=True if norm_layer is None else False,
                                           norm_layer=norm_layer,
-                                          activation_layer=None)
+                                          activation_layer=None) # TODO@ShivamPR21: #8 Padding `same` applied though proxy (`stride_effective, stride=1`) for onnx support
 
         self.conv3 = ConvNormActivation1d(hidden_channels,
                                           out_channels,
                                           1,
-                                          padding='same',
+                                          padding='stride_effective',
                                           bias=True if norm_layer is None else False,
                                           norm_layer=norm_layer,
-                                          activation_layer=None)
+                                          activation_layer=None) # TODO@ShivamPR21: #8 Padding `same` applied though proxy (`stride_effective, stride=1`) for onnx support
 
         self.projection = ConvNormActivation1d(in_channels,
                                                 out_channels,

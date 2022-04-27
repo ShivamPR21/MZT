@@ -15,7 +15,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 '''
 
-from typing import Callable, Optional, Tuple
+from typing import Callable, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -28,8 +28,8 @@ class ConvInvertedBlock2d(nn.Module):
     def __init__(self,
                  in_channels: int,
                  expansion_ratio: float,
-                 kernel_size: int = 3,
-                 stride: int = 1,
+                 kernel_size: Union[int, Tuple[int, int]] = 3,
+                 stride: Union[int, Tuple[int, int]] = 1,
                  norm_layer: Optional[Callable[..., nn.Module]] = None,
                  activation_layer: Optional[Callable[..., nn.Module]] = nn.ReLU6,
                  channel_shuffle: bool = False,
@@ -54,20 +54,20 @@ class ConvInvertedBlock2d(nn.Module):
         self.conv2 = ConvNormActivation2d(hidden_channels,
                                           hidden_channels,
                                           kernel_size,
-                                          padding='same',
+                                          padding='stride_effective',
                                           groups=hidden_channels, # Depth wise convolution
                                           bias=norm_layer is None,
                                           norm_layer=norm_layer,
-                                          activation_layer=activation_layer)
+                                          activation_layer=activation_layer) # TODO@ShivamPR21: #8 Padding `same` applied though proxy (`stride_effective, stride=1`) for onnx support
 
         self.conv3 = ConvNormActivation2d(hidden_channels,
                                           in_channels,
                                           1,
                                           stride=1,
-                                          padding='same',
+                                          padding='stride_effective',
                                           bias=norm_layer is None,
                                           norm_layer=norm_layer,
-                                          activation_layer=None)
+                                          activation_layer=None) # TODO@ShivamPR21: #8 Padding `same` applied though proxy (`stride_effective, stride=1`) for onnx support
 
     def forward(self, x:torch.Tensor) -> torch.Tensor:
         x = self.conv1(x)
@@ -76,6 +76,7 @@ class ConvInvertedBlock2d(nn.Module):
             x = self.channel_shuffle(x)
 
         x = self.conv2(x)
+        x = self.conv3(x)
 
         x = self.activation(x) if self.activation is not None else x
         return x
@@ -93,8 +94,8 @@ class ConvInvertedBlock1d(nn.Module):
     def __init__(self,
                  in_channels: int,
                  expansion_ratio: float,
-                 kernel_size: int = 3,
-                 stride: int = 1,
+                 kernel_size: Union[int, Tuple[int, int]] = 3,
+                 stride: Union[int, Tuple[int, int]] = 1,
                  norm_layer: Optional[Callable[..., nn.Module]] = None,
                  activation_layer: Optional[Callable[..., nn.Module]] = nn.ReLU6,
                  channel_shuffle: bool = False,
@@ -119,20 +120,20 @@ class ConvInvertedBlock1d(nn.Module):
         self.conv2 = ConvNormActivation1d(hidden_channels,
                                           hidden_channels,
                                           kernel_size,
-                                          padding='same',
+                                          padding='stride_effective',
                                           groups=hidden_channels, # Depth wise convolution
                                           bias=norm_layer is None,
                                           norm_layer=norm_layer,
-                                          activation_layer=activation_layer)
+                                          activation_layer=activation_layer) # TODO@ShivamPR21: #8 Padding `same` applied though proxy (`stride_effective, stride=1`) for onnx support
 
         self.conv3 = ConvNormActivation1d(hidden_channels,
                                           in_channels,
                                           1,
                                           stride=1,
-                                          padding='same',
+                                          padding='stride_effective',
                                           bias=norm_layer is None,
                                           norm_layer=norm_layer,
-                                          activation_layer=None)
+                                          activation_layer=None) # TODO@ShivamPR21: #8 Padding `same` applied though proxy (`stride_effective, stride=1`) for onnx support
 
     def forward(self, x:torch.Tensor) -> torch.Tensor:
         x = self.conv1(x)
@@ -141,6 +142,7 @@ class ConvInvertedBlock1d(nn.Module):
             x = self.channel_shuffle(x)
 
         x = self.conv2(x)
+        x = self.conv3(x)
 
         x = self.activation(x) if self.activation is not None else x
         return x

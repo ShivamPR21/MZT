@@ -1,4 +1,4 @@
-from typing import Callable, Optional, Tuple
+from typing import Callable, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -11,8 +11,8 @@ class ConvResidualBlock2d(nn.Module):
     def __init__(self,
                  in_channels: int,
                  out_channels: int,
-                 kernel_size: int = 3,
-                 stride: int = 1,
+                 kernel_size: Union[int, Tuple[int, int]] = 3,
+                 stride: Union[int, Tuple[int, int]] = 1,
                  norm_layer: Optional[Callable[..., nn.Module]] = None,
                  activation_layer: Optional[Callable[..., nn.Module]] = nn.ReLU6) -> None:
         super().__init__()
@@ -33,10 +33,10 @@ class ConvResidualBlock2d(nn.Module):
         self.conv2 = ConvNormActivation2d(out_channels,
                                           out_channels,
                                           kernel_size,
-                                          padding='same',
+                                          padding='stride_effective',
                                           bias=True if norm_layer is None else False,
                                           norm_layer=norm_layer,
-                                          activation_layer=None)
+                                          activation_layer=None) # TODO@ShivamPR21: #8 Padding `same` applied though proxy (`stride_effective, stride=1`) for onnx support
 
         self.projection = ConvNormActivation2d(in_channels,
                                                 out_channels,
@@ -74,8 +74,8 @@ class ConvResidualBlock1d(nn.Module):
     def __init__(self,
                  in_channels: int,
                  out_channels: int,
-                 kernel_size: int = 3,
-                 stride: int = 1,
+                 kernel_size: Union[int, Tuple[int, int]] = 3,
+                 stride: Union[int, Tuple[int, int]] = 1,
                  norm_layer: Optional[Callable[..., nn.Module]] = None,
                  activation_layer: Optional[Callable[..., nn.Module]] = None) -> None:
         super().__init__()
@@ -96,10 +96,10 @@ class ConvResidualBlock1d(nn.Module):
         self.conv2 = ConvNormActivation1d(out_channels,
                                           out_channels,
                                           kernel_size,
-                                          padding='same',
+                                          padding='stride_effective',
                                           bias=True if norm_layer is None else False,
                                           norm_layer=norm_layer,
-                                          activation_layer=None)
+                                          activation_layer=None) # TODO@ShivamPR21: #8 Padding `same` applied though proxy (`stride_effective, stride=1`) for onnx support
 
         self.projection = ConvNormActivation1d(in_channels,
                                                 out_channels,

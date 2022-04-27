@@ -15,7 +15,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 '''
 
-from typing import Callable, Optional, Tuple
+from typing import Callable, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -33,8 +33,8 @@ class ConvInvertedResidualBlock2d(ConvInvertedBlock2d):
     def __init__(self,
                  in_channels: int,
                  expansion_ratio: float,
-                 kernel_size: int = 3,
-                 stride: int = 1,
+                 kernel_size: Union[int, Tuple[int, int]] = 3,
+                 stride: Union[int, Tuple[int, int]] = 1,
                  norm_layer: Optional[Callable[..., nn.Module]] = None,
                  activation_layer: Optional[Callable[..., nn.Module]] = nn.ReLU6,
                  channel_shuffle: bool = False,
@@ -66,6 +66,7 @@ class ConvInvertedResidualBlock2d(ConvInvertedBlock2d):
             x_ = self.channel_shuffle(x_)
 
         x_ = self.conv2(x_)
+        x_ = self.conv3(x_)
 
         if self.projection is not None:
             x = self.projection(x) + x_
@@ -89,8 +90,8 @@ class ConvInvertedResidualBlock1d(ConvInvertedBlock1d):
     def __init__(self,
                  in_channels: int,
                  expansion_ratio: float,
-                 kernel_size: int = 3,
-                 stride: int = 1,
+                 kernel_size: Union[int, Tuple[int, int]] = 3,
+                 stride: Union[int, Tuple[int, int]] = 1,
                  norm_layer: Optional[Callable[..., nn.Module]] = None,
                  activation_layer: Optional[Callable[..., nn.Module]] = nn.ReLU6,
                  channel_shuffle: bool = False,
@@ -122,6 +123,7 @@ class ConvInvertedResidualBlock1d(ConvInvertedBlock1d):
             x_ = self.channel_shuffle(x_)
 
         x_ = self.conv2(x_)
+        x_ = self.conv3(x_)
 
         if self.projection is not None:
             x = self.projection(x) + x_
