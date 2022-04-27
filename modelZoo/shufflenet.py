@@ -20,41 +20,41 @@ from typing import List
 import torch.nn as nn
 from torch import Tensor
 
-from ..moduleZoo.resblocks import ShuffleInvertedResidual
+from ..moduleZoo.resblocks import ConvInvertedResidualBlock2d
 
+#TODO@ShivamPR21: #5 Adapt model based on changed moduleZoo API
+# class ShuffleNet(nn.Module):
+#     def __init__(self,
+#                  in_channel: int,
+#                  settings: List[List[int]] = None
+#                  ) -> None:
+#         super().__init__()
 
-class ShuffleNet(nn.Module):
-    def __init__(self,
-                 in_channel: int,
-                 settings: List[List[int]] = None
-                 ) -> None:
-        super().__init__()
+#         if settings is None:
+#             settings = [
+#                 #k, s, r, exp
+#                 [3, 2, 1, 1, 2],
+#                 [3, 1, 3, 1, 2],
+#                 [3, 2, 1, 1, 2],
+#                 [3, 1, 7, 1, 2],
+#                 [3, 2, 1, 1, 2],
+#                 [3, 1, 3, 1, 2]]
 
-        if settings is None:
-            settings = [
-                #k, s, r, exp
-                [3, 2, 1, 1, 2],
-                [3, 1, 3, 1, 2],
-                [3, 2, 1, 1, 2],
-                [3, 1, 7, 1, 2],
-                [3, 2, 1, 1, 2],
-                [3, 1, 3, 1, 2]]
+#         features : List[nn.Module] = []
+#         for k, s, r, e, g in settings:
+#             for _ in range(r):
+#                 features.append(
+#                     ShuffleInvertedResidual(in_channel, in_channel, e,
+#                                             g, k, s, nn.BatchNorm2d, nn.ReLU6)
+#                 )
+#                 if s == 2:
+#                     in_channel *= 2
 
-        features : List[nn.Module] = []
-        for k, s, r, e, g in settings:
-            for _ in range(r):
-                features.append(
-                    ShuffleInvertedResidual(in_channel, in_channel, e,
-                                            g, k, s, nn.BatchNorm2d, nn.ReLU6)
-                )
-                if s == 2:
-                    in_channel *= 2
+#         self.features = nn.Sequential(*features)
 
-        self.features = nn.Sequential(*features)
+#     def _forward_impl(self, x: Tensor) -> Tensor:
+#         x = self.features(x)
+#         return x
 
-    def _forward_impl(self, x: Tensor) -> Tensor:
-        x = self.features(x)
-        return x
-
-    def forward(self, x: Tensor) -> Tensor:
-        return self._forward_impl(x)
+#     def forward(self, x: Tensor) -> Tensor:
+#         return self._forward_impl(x)

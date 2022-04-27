@@ -14,7 +14,7 @@ def read(fname):
 
 setup(
     name = "modulezoo",
-    version = "0.0.0",
+    version = "1.1.1",
     author = "Shivam Pandey",
     author_email = "pandeyshivam2017robotics@gmail.com",
     description = ("Package to host DeepLearning modules for pytorch ecosystem,"
@@ -22,7 +22,12 @@ setup(
     license = "AGPLv3",
     keywords = "DeepLearning Pytorch Modules",
     url = "https://github.com/ShivamPR21/ModuleZooTorch.git",
-    packages=['moduleZoo', 'moduleZoo.convolution', 'moduleZoo.resblocks', 'modelZoo'],
+    packages=['moduleZoo',
+              'moduleZoo.convolution',
+              'moduleZoo.resblocks',
+              'moduleZoo.attention',
+              'moduleZoo.graphs',
+              'modelZoo'],
     long_description=read('README.md'),
     classifiers=[
         "Development Status :: Alpha",

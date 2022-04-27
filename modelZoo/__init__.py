@@ -15,7 +15,9 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 '''
 
-from .mbnetv2 import MobileNetV2
-from .shufflenet import ShuffleInvertedResidual
+from .graphs import DGCNN
 
-__all__ = ('MobileNetV2', 'ShuffleInvertedResidual')
+# from .mbnetv2 import MobileNetV2
+# from .shufflenet import ShuffleInvertedResidual
+
+__all__ = ('MobileNetV2', 'ShuffleInvertedResidual', 'DGCNN')
