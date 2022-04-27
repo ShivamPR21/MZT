@@ -17,4 +17,5 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from .attention import *
 from .convolution import *
+from .graphs import *
 from .resblocks import *

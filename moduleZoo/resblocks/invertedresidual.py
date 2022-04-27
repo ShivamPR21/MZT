@@ -15,64 +15,128 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 '''
 
-from typing import Callable, List, Optional
+from typing import Callable, Optional, Tuple, Union
 
+import torch
 import torch.nn as nn
-from torch import Tensor
 
-from ..convolution import Conv2DNormActivation
+from ..convolution import (
+    ConvInvertedBlock1d,
+    ConvInvertedBlock2d,
+    ConvNormActivation1d,
+    ConvNormActivation2d,
+)
 
 
-class Conv2DInvertedResidual(nn.Module):
+class ConvInvertedResidualBlock2d(ConvInvertedBlock2d):
+
     def __init__(self,
                  in_channels: int,
-                 out_channels: int,
                  expansion_ratio: float,
-                 stride: int,
-                 norm_layer: Optional[Callable[..., nn.Module]] = None) -> None:
-        """Inverted Residual Block
+                 kernel_size: Union[int, Tuple[int, int]] = 3,
+                 stride: Union[int, Tuple[int, int]] = 1,
+                 norm_layer: Optional[Callable[..., nn.Module]] = None,
+                 activation_layer: Optional[Callable[..., nn.Module]] = nn.ReLU6,
+                 channel_shuffle: bool = False,
+                 grouping: int = 1) -> None:
+        super().__init__(in_channels,
+                         expansion_ratio,
+                         kernel_size,
+                         stride,
+                         norm_layer,
+                         activation_layer,
+                         channel_shuffle,
+                         grouping)
 
-        Args:
-            in_channels (int): Number of input channels
-            out_channels (int): Number of output channels
-            expansion_ratio (float): Expantion ratio, determines the width of hidden layers
-            stride (int): stride for conv blocks, must be in [1, 2], if >1 then rsidual connection will also be skipped
-            norm_layer (Optional[Callable[..., nn.Module]], optional): normalization layer, applied just after convolition and before activation function. Defaults to None.
-        """
-        super().__init__()
-        assert stride in [1, 2]
+        self.proj_type = 'id' if stride == 1 else 'projection'
 
-        if norm_layer is None:
-            norm_layer = nn.BatchNorm2d
+        self.projection = ConvNormActivation2d(in_channels,
+                                                in_channels,
+                                                1,
+                                                stride,
+                                                padding='stride_effective',
+                                                bias=False,
+                                                norm_layer=None,
+                                                activation_layer=None) if self.proj_type == 'projection' else None
 
-        hidden_channels = round(in_channels * expansion_ratio)
-        self.res_connect = stride == 1 and in_channels == out_channels
+    def forward(self, x:torch.Tensor) -> torch.Tensor:
+        x_ = self.conv1(x)
 
-        layers: List[nn.Module] = []
-        if expansion_ratio != 1:
-            layers.append(Conv2DNormActivation(in_channels, hidden_channels, kernel_size=1,
-                                             stride=stride, norm_layer=norm_layer, activation_layer=nn.Relu6))
-        layers.extend(
-            [
-                Conv2DNormActivation(
-                    hidden_channels,
-                    hidden_channels,
-                    stride = stride,
-                    groups = hidden_channels,
-                    norm_layer = norm_layer,
-                    activation_layer = nn.ReLU6
-                ),
+        if self.channel_shuffle is not None:
+            x_ = self.channel_shuffle(x_)
 
-                nn.Conv2d(hidden_channels, out_channels, 1, 1, 0, bias=False),
-                norm_layer(out_channels)
-            ]
-        )
-        self.conv = nn.Sequential(*layers)
-        self.out_channels = out_channels
-        self._is_cn = stride > 1
+        x_ = self.conv2(x_)
+        x_ = self.conv3(x_)
 
-    def forward(self, x: Tensor) -> Tensor:
-        if self.res_connect:
-            return x + self.conv(x)
-        else:
-            return self.conv(x)
+        if self.projection is not None:
+            x = self.projection(x) + x_
+            x = self.activation(x) if self.activation is not None else x
+            return x
+
+        x = x + x_
+        x = self.activation(x) if self.activation is not None else x
+        return x
+
+    def shape(self, in_shape: Tuple[int, int]):
+        final_conv_shape = super().shape(in_shape)
+        final_proj_shape = self.projection.shape(in_shape) if self.projection is not None else in_shape
+        assert(final_conv_shape == final_proj_shape)
+
+        return final_conv_shape
+
+
+class ConvInvertedResidualBlock1d(ConvInvertedBlock1d):
+
+    def __init__(self,
+                 in_channels: int,
+                 expansion_ratio: float,
+                 kernel_size: Union[int, Tuple[int, int]] = 3,
+                 stride: Union[int, Tuple[int, int]] = 1,
+                 norm_layer: Optional[Callable[..., nn.Module]] = None,
+                 activation_layer: Optional[Callable[..., nn.Module]] = nn.ReLU6,
+                 channel_shuffle: bool = False,
+                 grouping: int = 1) -> None:
+        super().__init__(in_channels,
+                         expansion_ratio,
+                         kernel_size,
+                         stride,
+                         norm_layer,
+                         activation_layer,
+                         channel_shuffle,
+                         grouping)
+
+        self.proj_type = 'id' if stride == 1 else 'projection'
+
+        self.projection = ConvNormActivation1d(in_channels,
+                                                in_channels,
+                                                1,
+                                                stride,
+                                                padding='stride_effective',
+                                                bias=False,
+                                                norm_layer=None,
+                                                activation_layer=None) if self.proj_type == 'projection' else None
+
+    def forward(self, x:torch.Tensor) -> torch.Tensor:
+        x_ = self.conv1(x)
+
+        if self.channel_shuffle is not None:
+            x_ = self.channel_shuffle(x_)
+
+        x_ = self.conv2(x_)
+        x_ = self.conv3(x_)
+
+        if self.projection is not None:
+            x = self.projection(x) + x_
+            x = self.activation(x) if self.activation is not None else x
+            return x
+
+        x = x + x_
+        x = self.activation(x) if self.activation is not None else x
+        return x
+
+    def shape(self, in_shape: Tuple[int, int]):
+        final_conv_shape = super().shape(in_shape)
+        final_proj_shape = self.projection.shape(in_shape) if self.projection is not None else in_shape
+        assert(final_conv_shape == final_proj_shape)
+
+        return final_conv_shape
