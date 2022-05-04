@@ -21,13 +21,14 @@ class DGCNN(nn.Module):
         self.activation_layer = nn.SELU if activation_layer is None else activation_layer
 
         self.layers = nn.ModuleList()
-
+        cat_dim = 0
         for cfg in self.cfg:
             self.layers.append(GraphConv2d(*cfg[:-1], k,
                                            norm_layer=nn.BatchNorm2d if cfg[-1] else None,
                                            activation_layer=self.activation_layer))
+            cat_dim += cfg[1]
 
-        self.final_conv = GraphConv2d(32+64+128+256+512,
+        self.final_conv = GraphConv2d(cat_dim,
                                        embed_dim,
                                        1,
                                        activation_layer=self.activation_layer)

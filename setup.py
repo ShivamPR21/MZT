@@ -2,8 +2,6 @@ import os
 
 from setuptools import setup
 
-import moduleZoo
-
 
 # Utility function to read the README file.
 # Used for the long_description.  It's nice, because now 1) we have a top level
@@ -27,7 +25,8 @@ setup(
               'moduleZoo.resblocks',
               'moduleZoo.attention',
               'moduleZoo.graphs',
-              'modelZoo'],
+              'modelZoo',
+              'mzLosses'],
     long_description=read('README.md'),
     classifiers=[
         "Development Status :: Alpha",
