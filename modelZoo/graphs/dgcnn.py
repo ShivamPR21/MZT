@@ -1,4 +1,4 @@
-from typing import Callable, List, Optional, Tuple, Union
+from typing import Callable, List, Optional, Tuple
 
 import torch
 import torch.nn as nn
@@ -31,7 +31,7 @@ class DGCNN(nn.Module):
         self.final_conv = GraphConv2d(cat_dim,
                                        embed_dim,
                                        1,
-                                       activation_layer=self.activation_layer)
+                                       activation_layer=None)
 
     def forward(self, x: torch.Tensor):
         # Assumed shape x: [B, d, n]
