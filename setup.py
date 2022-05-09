@@ -26,7 +26,8 @@ setup(
               'moduleZoo.attention',
               'moduleZoo.graphs',
               'modelZoo',
-              'mzLosses'],
+              'mzLosses',
+              'mzExtras'],
     long_description=read('README.md'),
     classifiers=[
         "Development Status :: Alpha",
