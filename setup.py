@@ -12,7 +12,7 @@ def read(fname):
 
 setup(
     name = "modulezoo",
-    version = "1.1.1",
+    version = "1.1.2-alpha",
     author = "Shivam Pandey",
     author_email = "pandeyshivam2017robotics@gmail.com",
     description = ("Package to host DeepLearning modules for pytorch ecosystem,"
@@ -24,6 +24,7 @@ setup(
               'moduleZoo.convolution',
               'moduleZoo.resblocks',
               'moduleZoo.attention',
+              'moduleZoo.dense',
               'moduleZoo.graphs',
               'modelZoo',
               'mzLosses',

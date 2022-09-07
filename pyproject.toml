@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ModuleZooTorch"
+version = "1.1.2-alpha"
+authors = [
+  { name="Shivam Pandey", email="pandeyshivam2017robotics@gmail.com" },
+]
+description = "Package to host DeepLearning modules for pytorch ecosystem, to ease out model implementations."
+readme = "README.md"
+license = { file="LICENSE" }
+requires-python = ">=3.8"
+classifiers = [
+        "Development Status :: Alpha",
+        "Topic :: Utilities",
+        "License :: OSI Approved :: AGPLv3 License"
+]
+
+[project.urls]
+"Homepage" = "https://github.com/ShivamPR21/ModuleZooTorch"
+
+[testpypi]
+  username = "__token__"
+  password = "pypi-AgENdGVzdC5weXBpLm9yZwIkNjc5ZjFmZTItMmZhYi00YTk0LWE3YWMtNWYyOGI3MTU5ZWU0AAIqWzMsIjgxYWRmZGZkLTJhZTMtNGU1Yy05Y2Y3LTMyMjlhMzAzNWJkYyJdAAAGINBX_mEtW91PWwujpWISLyfSYxNnEZuHPOZEEHf5Fw02"

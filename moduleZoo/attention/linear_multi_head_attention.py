@@ -31,12 +31,13 @@ class MultiHeadAttentionLinear(nn.Module):
         self.out_dim *= n_heads
         self.y_out_dim *= n_heads
 
-        self.query_conv = nn.Linear(self.in_dim, self.out_dim)
-        self.key_conv = nn.Linear(self.in_dim, self.out_dim)
+        self.query = nn.Linear(self.in_dim, self.out_dim)
+        self.key = nn.Linear(self.in_dim, self.out_dim)
 
-        self.value_conv = nn.Linear(self.y_in_dim, self.y_out_dim)
+        self.value = nn.Linear(self.y_in_dim, self.y_out_dim)
 
-        self.gamma = nn.Parameter(torch.rand(n_heads, 1, 1, 1)+0.001) if self.residual else None
+        # gamma as the shape of expanded dims with n_heads, so [n_heads, 1, _, _, ...]
+        self.gamma = nn.Parameter(torch.rand((n_heads, 1, 1) if n_heads == 1 else (n_heads, 1, 1, 1))+0.001) if self.residual else None
 
         self.proj = 'id' if self.y_out_dim//self.n_heads == self.y_in_dim and not self.residual else 'projection'
         self.projection = nn.Linear(self.y_in_dim, self.y_out_dim//self.n_heads, bias=False) if self.proj == 'projection' else None
@@ -46,7 +47,7 @@ class MultiHeadAttentionLinear(nn.Module):
     def forward(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         """
             inputs :
-                x : input feature maps( B X C X N)
+                x : input feature maps( B X 1 X N)
                 y : feature map attention to be applied
             returns :
                 out : self attention value or + input feature
@@ -56,10 +57,10 @@ class MultiHeadAttentionLinear(nn.Module):
 
         assert(b == B)
 
-        proj_query = self.query_conv(x).unsqueeze(dim=1) # B X 1 X N * n_heads
-        proj_key = self.key_conv(x).unsqueeze(dim=1) # B X 1 X N * n_heads
+        proj_query = self.query(x).unsqueeze(dim=1) # B X 1 X N * n_heads
+        proj_key = self.key(x).unsqueeze(dim=1) # B X 1 X N * n_heads
 
-        proj_value = self.value_conv(y).unsqueeze(dim=1) # B X 1 X ON * n_heads
+        proj_value = self.value(y).unsqueeze(dim=1) # B X 1 X ON * n_heads
 
         if self.n_heads != 1:
             split_size = [self.out_dim//self.n_heads, self.out_dim//self.n_heads, self.y_out_dim//self.n_heads]
@@ -102,4 +103,20 @@ class MultiHeadAttentionLinear(nn.Module):
         return out
 
     def shape(self, in_shape: int, y_in_shape: int):
-        return y_in_shape
+        return self.y_out_dim//self.n_heads
+
+class MultiHeadSelfAttentionLinear(MultiHeadAttentionLinear):
+
+    def __init__(self, in_dim: int, out_dim: Optional[int] = None, n_heads: int = 1, residual: bool = True):
+        super().__init__(in_dim, out_dim, in_dim, out_dim, n_heads, residual, None)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return super().forward(x, x)
+
+class SelfAttentionLinear(MultiHeadSelfAttentionLinear):
+
+    def __init__(self, in_dim: int, out_dim: Optional[int] = None, residual: bool = True):
+        super().__init__(in_dim, out_dim, 1, residual)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return super().forward(x)
