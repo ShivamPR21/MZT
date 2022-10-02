@@ -38,7 +38,8 @@ class MultiHeadAttention2d(nn.Module):
 
         self.value_conv = ConvNormActivation2d(self.y_in_channels, self.y_out_channels, kernel_size, padding='stride_effective') # TODO@ShivamPR21: Padding `same` applied though proxy (`stride_effective, stride=1`) for onnx support
 
-        self.gamma = nn.Parameter(torch.rand(n_heads, 1, 1, 1)+0.001) if self.residual else None
+        # gamma as the shape of expanded dims with n_heads, so [n_heads, 1, _, _, ...]
+        self.gamma = nn.Parameter(torch.rand((n_heads, 1, 1) if n_heads == 1 else (n_heads, 1, 1, 1))+0.001) if self.residual else None
 
         self.proj = 'id' if self.y_out_channels//self.n_heads == self.y_in_channels and not self.residual else 'projection'
         self.projection = ConvNormActivation2d(self.y_in_channels, self.y_out_channels//n_heads, 1, bias=False) if self.proj == 'projection' else None
@@ -135,7 +136,8 @@ class MultiHeadAttention1d(nn.Module):
 
         self.value_conv = ConvNormActivation1d(self.y_in_channels, self.y_out_channels, kernel_size, padding='stride_effective') # TODO@ShivamPR21: Padding `same` applied though proxy (`stride_effective, stride=1`) for onnx support
 
-        self.gamma = nn.Parameter(torch.rand(n_heads, 1, 1, 1)+0.001) if self.residual else None
+        # gamma as the shape of expanded dims with n_heads, so [n_heads, 1, _, _, ...]
+        self.gamma = nn.Parameter(torch.rand((n_heads, 1, 1) if n_heads == 1 else (n_heads, 1, 1, 1))+0.001) if self.residual else None
 
         self.proj = 'id' if self.y_out_channels//self.n_heads == self.y_in_channels and not self.residual else 'projection'
         self.projection = ConvNormActivation1d(self.y_in_channels, self.y_out_channels//self.n_heads, 1, bias=False) if self.proj == 'projection' else None

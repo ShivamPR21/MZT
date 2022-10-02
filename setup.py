@@ -11,8 +11,8 @@ def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 setup(
-    name = "modulezoo",
-    version = "1.1.2-alpha",
+    name = "mzt",
+    version = "1.1.3-alpha",
     author = "Shivam Pandey",
     author_email = "pandeyshivam2017robotics@gmail.com",
     description = ("Package to host DeepLearning modules for pytorch ecosystem,"
@@ -31,8 +31,8 @@ setup(
               'mzExtras'],
     long_description=read('README.md'),
     classifiers=[
-        "Development Status :: Alpha",
+        "Development Status :: 3 - Alpha",
         "Topic :: Utilities",
-        "License :: OSI Approved :: AGPLv3 License",
+        "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
     ],
 )
