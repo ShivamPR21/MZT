@@ -2,7 +2,13 @@
 
 Collection of neural-net modules introduced in latest research
 
-Available Modules:
+## Installation
+
+```shell
+pip install MZT
+```
+
+## Available Modules
 
 - Convolutional Blocks:
   - ConvNormActivation1d
