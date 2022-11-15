@@ -5,7 +5,7 @@ Collection of neural-net modules introduced in latest research
 ## Installation
 
 ```shell
-pip install MZT
+pip install mzt
 ```
 
 ## Available Modules

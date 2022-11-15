@@ -12,12 +12,12 @@ def read(fname):
 
 setup(
     name = "mzt",
-    version = "1.1.3-alpha",
+    version = "1.1.4-alpha",
     author = "Shivam Pandey",
     author_email = "pandeyshivam2017robotics@gmail.com",
     description = ("Package to host DeepLearning modules for pytorch ecosystem,"
                    " to ease out model implementations."),
-    license = "AGPLv3",
+    license = "AGPLv3+",
     keywords = "DeepLearning Pytorch Modules",
     url = "https://github.com/ShivamPR21/ModuleZooTorch.git",
     packages=['moduleZoo',
