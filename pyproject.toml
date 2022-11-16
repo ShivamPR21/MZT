@@ -1,10 +1,11 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=61.0",
+"wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "mzt"
-version = "1.1.4-alpha"
+version = "1.1.4"
 authors = [
   { name="Shivam Pandey", email="pandeyshivam2017robotics@gmail.com" },
 ]
@@ -20,3 +21,16 @@ classifiers = [
 
 [project.urls]
 "Homepage" = "https://github.com/ShivamPR21/ModuleZooTorch"
+
+# [options]
+# packages = [
+#   { include = "moduleZoo" },
+#   { include = "moduleZoo.convolution" },
+#   { include = "moduleZoo.resblocks" },
+#   { include = "moduleZoo.attention" },
+#   { include = "moduleZoo.dense" },
+#   { include = "moduleZoo.graphs" },
+#   { include = "modelZoo" },
+#   { include = "mzLosses" },
+#   { include = "mzExtras" }
+# ]
