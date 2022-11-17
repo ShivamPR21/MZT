@@ -20,12 +20,8 @@ from typing import Callable, Optional, Tuple, Union
 import torch
 import torch.nn as nn
 
-from ..convolution import (
-    ConvInvertedBlock1d,
-    ConvInvertedBlock2d,
-    ConvNormActivation1d,
-    ConvNormActivation2d,
-)
+from ..convolution import (ConvInvertedBlock1d, ConvInvertedBlock2d,
+                           ConvNormActivation1d, ConvNormActivation2d)
 
 
 class ConvInvertedResidualBlock2d(ConvInvertedBlock2d):
@@ -33,6 +29,7 @@ class ConvInvertedResidualBlock2d(ConvInvertedBlock2d):
     def __init__(self,
                  in_channels: int,
                  expansion_ratio: float,
+                 out_channels: Optional[float] = None,
                  kernel_size: Union[int, Tuple[int, int]] = 3,
                  stride: Union[int, Tuple[int, int]] = 1,
                  norm_layer: Optional[Callable[..., nn.Module]] = None,
@@ -41,6 +38,7 @@ class ConvInvertedResidualBlock2d(ConvInvertedBlock2d):
                  grouping: int = 1) -> None:
         super().__init__(in_channels,
                          expansion_ratio,
+                         out_channels,
                          kernel_size,
                          stride,
                          norm_layer,
