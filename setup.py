@@ -27,6 +27,7 @@ setup(
               'moduleZoo.dense',
               'moduleZoo.graphs',
               'modelZoo',
+              'modelZoo.graphs',
               'mzLosses',
               'mzExtras'],
     long_description=read('README.md'),

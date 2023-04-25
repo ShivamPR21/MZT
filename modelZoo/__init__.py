@@ -20,4 +20,4 @@ from .graphs import DGCNN
 # from .mbnetv2 import MobileNetV2
 # from .shufflenet import ShuffleInvertedResidual
 
-__all__ = ('MobileNetV2', 'ShuffleInvertedResidual', 'DGCNN')
+__all__ = ('DGCNN',)
