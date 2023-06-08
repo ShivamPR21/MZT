@@ -4,7 +4,7 @@ import torch
 
 
 def knn(x: torch.Tensor, k: int) -> torch.Tensor:
-    # Assumed shape of x [B, n, d]
+    # Assumed shape of x -> [B, n, d]
     x = x.unsqueeze(dim=1) # [B, 1, n, d]
     n_x = x.transpose(2, 1) # [B, n, 1, d]
 

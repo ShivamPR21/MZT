@@ -12,7 +12,7 @@ def read(fname):
 
 setup(
     name = "mzt",
-    version = "1.1.4",
+    version = "1.1.5",
     author = "Shivam Pandey",
     author_email = "pandeyshivam2017robotics@gmail.com",
     description = ("Package to host DeepLearning modules for pytorch ecosystem,"

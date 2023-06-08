@@ -1,11 +1,9 @@
-from .attention import (
+from .graph_linear_multi_head_attention import (
     MultiHeadGraphAttentionLinear,
     MultiHeadSelfGraphAttentionLinear,
     SelfGraphAttentionLinear,
 )
-from .grah_conv import GraphConv
 
-__all__ = ('GraphConv',
-           'MultiHeadGraphAttentionLinear',
+__all__ = ('MultiHeadGraphAttentionLinear',
            'MultiHeadSelfGraphAttentionLinear',
            'SelfGraphAttentionLinear')

@@ -1,4 +1,4 @@
-from typing import Optional, Tuple, Union
+from typing import List, Optional, Tuple
 
 import torch
 import torch.nn as nn
@@ -8,7 +8,7 @@ from .utils import split_cat
 
 
 class MultiHeadAttentionLinear(nn.Module):
-    """ Multi HeadSelf attention Layer"""
+    """ Multi Head Self attention Layer."""
     def __init__(self,
                  in_dim: int,
                  out_dim: Optional[int] = None,
@@ -44,33 +44,52 @@ class MultiHeadAttentionLinear(nn.Module):
 
         self.softmax = nn.Softmax(dim=-1)
 
-    def forward(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+    def extract_qkv(self, x:torch.Tensor, y:torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        q, k, v = self.query(x), self.key(x), self.value(y)
+        return q, k, v
+
+    def forward(self, x: torch.Tensor, y: torch.Tensor,
+                proj_query: Optional[torch.Tensor] = None,
+                proj_key: Optional[torch.Tensor] = None,
+                proj_value: Optional[torch.Tensor] = None) -> torch.Tensor:
+        # trunk-ignore(ruff/D401)
         """
             inputs :
-                x : input feature maps( B X 1 X N)
-                y : feature map attention to be applied
+                x : input feature maps( B X k X N) or ( B X N)
+                y : feature map attention to be applied( B X k X ON) or ( B X ON)
             returns :
-                out : self attention value or + input feature
+                out : self attention value or + input feature..
         """
-        b, n = x.size()
-        B, N = y.size()
+        final_squeeze = False
 
-        assert(b == B)
+        if x.ndim == 2:
+            x = x.unsqueeze(dim=1)
+            final_squeeze = True
 
-        proj_query = self.query(x).unsqueeze(dim=1) # B X 1 X N * n_heads
-        proj_key = self.key(x).unsqueeze(dim=1) # B X 1 X N * n_heads
+        if y.ndim == 2:
+            y = y.unsqueeze(dim=1)
+            final_squeeze = True
 
-        proj_value = self.value(y).unsqueeze(dim=1) # B X 1 X ON * n_heads
+        assert(x.ndim == 3 and y.ndim == 3)
+
+        b, k, n = x.size()
+        B, K, N = y.size()
+
+        assert(b == B and k == K)
+
+        if (proj_query is None or proj_key is None or proj_value is None):
+            # B X k X N * n_heads # B X k X N * n_heads # B X k X ON * n_heads
+            proj_query, proj_key, proj_value = self.extract_qkv(x, y)
 
         if self.n_heads != 1:
             split_size = [self.out_dim//self.n_heads, self.out_dim//self.n_heads, self.y_out_dim//self.n_heads]
-            # n_heads*B X 1 X N, n_heads*B X 1 X N, n_heads*B X 1 X ON
+            # n_heads*B X k X N, n_heads*B X k X N, n_heads*B X k X ON
             proj_query, proj_key, proj_value = \
                 split_cat(proj_query, split_size[0], 2, 0), \
                     split_cat(proj_key, split_size[1], 2, 0), \
                         split_cat(proj_value, split_size[2], 2, 0)
 
-        proj_query = proj_query.transpose(2, 1) # n_heads*B X N X 1
+        proj_query = proj_query.transpose(2, 1) # n_heads*B X N X k
 
         energy = torch.bmm(proj_query,proj_key) # transpose check # n_heads*B X N X N
         attention = self.softmax(energy) # n_heads*B X N X N
@@ -81,28 +100,30 @@ class MultiHeadAttentionLinear(nn.Module):
                                     (self.y_out_dim, self.y_out_dim),
                                     mode=self.interpolation_mode) # B, ON, ON
 
-        out = torch.bmm(proj_value, attention.transpose(2, 1)) # n_heads*B X 1 X ON
+        out = torch.bmm(proj_value, attention.transpose(2, 1)) # n_heads*B X k X ON
+
+        out = split_cat(out, B, 0, -1) # n_heads X B X 1 X ON
 
         if self.residual:
             if self.projection is not None:
-                y = self.projection(y).unsqueeze(dim=1) # B X 1 X ON
+                y = self.projection(y) # B X k X ON
 
-            if self.n_heads != 1:
-                out = split_cat(out, B, 0, -1) # n_heads X B X 1 X ON
-                y = y.unsqueeze(dim=0).repeat(self.n_heads, 1, 1, 1) # n_head X B X 1 X ON
+            y = y.unsqueeze(dim=0).repeat(self.n_heads, 1, 1, 1) # n_head X B X k X ON
 
             out = (self.gamma*out + y)/(1 + self.gamma)
 
-            if self.n_heads != 1:
-                out = split_cat(out, 1, 0, 2).squeeze(dim=0) # B X n_heads X ON
+        out = out.permute(1, 0, 2, 3) # B X n_heads X k X ON
 
-            return out
+        # print(f'{out.shape = }')
 
-        out = split_cat(out, B, 0, 1) # B X n_heads X ON
+        if final_squeeze:
+            out = out.squeeze(dim=2) # B X n_heads X ON
+            if self.n_heads == 1:
+                out = out.squeeze(dim=1) # B X ON
 
         return out
 
-    def shape(self, in_shape: int, y_in_shape: int):
+    def shape(self, in_shape: int, y_in_shape: int) -> int | List[int]:
         return self.y_out_dim//self.n_heads
 
 class MultiHeadSelfAttentionLinear(MultiHeadAttentionLinear):
