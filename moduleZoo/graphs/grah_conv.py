@@ -50,13 +50,25 @@ class GraphConv(LinearNormActivation):
         self.reduction = reduction
         self.features = features
         self.db = dynamic_batching
-
+        self.matrix_op_device = torch.device('cpu') if enable_offloading else None
 
     def static_forward(self, x: torch.Tensor) -> torch.Tensor:
         # B, n, d = x.size()
-        print(f'1: {x.shape = }')
+        ### Wrap for cpu offloading ###
+        ###############################
+        source_device = x.device
+
+        if self.matrix_op_device is not None and source_device != self.matrix_op_device:
+            x = x.to(self.matrix_op_device)
+
         x = get_graph_features(x, None, self.k, self.features) # [B, n, k, 2*d]
-        print(f'2: {x.shape = }')
+
+        if source_device != x.device:
+            x = x.to(source_device)
+
+        ### Wrap for cpu offloading ###
+        ###############################
+
         x = super().forward(x)
 
         if self.reduction == 'max':
@@ -84,14 +96,13 @@ class GraphConv(LinearNormActivation):
             idx_map = (node_group_sizes == unl)
             idxs = np.concatenate(sz_arr[idx_map], axis = 0).astype(np.uint32).tolist()
 
-            # print(f'{idxs = }')
             x_ = x[idxs, :] # [n_, d]
             b = x_.shape[0]//unl
             x_ = x_.view((b, unl, d)) # [N//b, b, d]
             x_ = self.static_forward(x_)
             result[idxs, :] = x_.view((b*unl, self.shape()))
 
-            assert(torch.all(x_ == split_cat(result[idxs, :], 100, 0, -1)).item())
+            assert(torch.all(x_ == split_cat(result[idxs, :], int(unl), 0, -1)).item())
 
         return result
 
@@ -101,9 +112,22 @@ class GraphConv(LinearNormActivation):
         if isinstance(node_group_sizes, np.ndarray):
             node_group_sizes = node_group_sizes.tolist()
 
+        ### Wrap for cpu offloading ###
+        ###############################
+        source_device = x.device
+
+        if self.matrix_op_device is not None and source_device != self.matrix_op_device:
+            x = x.to(self.matrix_op_device)
+
         x = torch.cat(
             [get_graph_features(x_, None, self.k, self.features) for x_ in x.unsqueeze(dim=0).split(node_group_sizes, dim=1)],
         dim=0).squeeze(dim=0) # [N, k, d]
+
+        if source_device != x.device:
+            x = x.to(source_device)
+
+        ### Wrap for cpu offloading ###
+        ###############################
 
         x = super().forward(x) # [N, k, d']
 

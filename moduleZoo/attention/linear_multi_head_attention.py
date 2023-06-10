@@ -49,9 +49,9 @@ class MultiHeadAttentionLinear(nn.Module):
         return q, k, v
 
     def forward(self, x: torch.Tensor, y: torch.Tensor,
-                proj_query: Optional[torch.Tensor] = None,
-                proj_key: Optional[torch.Tensor] = None,
-                proj_value: Optional[torch.Tensor] = None) -> torch.Tensor:
+                proj_query: torch.Tensor | None = None,
+                proj_key: torch.Tensor | None = None,
+                proj_value: torch.Tensor | None = None) -> torch.Tensor:
         # trunk-ignore(ruff/D401)
         """
             inputs :
