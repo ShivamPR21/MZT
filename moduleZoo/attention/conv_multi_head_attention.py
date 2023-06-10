@@ -300,11 +300,12 @@ class MultiHeadSelfAttention2d(MultiHeadAttention2d):
 
     def __init__(self,
                  in_channels: int,
-                 out_channels: Optional[int] = None,
+                 out_channels: int | None = None,
                  n_heads: int = 1,
                  residual: bool = True,
-                 kernel_size: Union[int, Tuple[int, int]] = 1):
-        super().__init__(in_channels, out_channels, None, None, n_heads, residual, kernel_size, None)
+                 kernel_size: int | Tuple[int, int] = 1,
+                 channel_cross_attention: bool = False):
+        super().__init__(in_channels, out_channels, None, None, n_heads, residual, kernel_size, None, channel_cross_attention)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return super().forward(x, x)
@@ -313,11 +314,12 @@ class MultiHeadSelfAttention1d(MultiHeadAttention1d):
 
     def __init__(self,
                  in_channels: int,
-                 out_channels: Optional[int] = None,
+                 out_channels: int | None = None,
                  n_heads: int = 1,
                  residual: bool = True,
-                 kernel_size: Union[int, Tuple[int, int]] = 1):
-        super().__init__(in_channels, out_channels, None, None, n_heads, residual, kernel_size, None)
+                 kernel_size: int | Tuple[int, int] = 1,
+                 channel_cross_attention: bool = False):
+        super().__init__(in_channels, out_channels, None, None, n_heads, residual, kernel_size, None, channel_cross_attention)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return super().forward(x, x)
