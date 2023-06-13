@@ -3,6 +3,7 @@ from typing import Callable, List
 import numpy as np
 import torch
 import torch.nn as nn
+
 from moduleZoo.attention.utils import split_cat
 from moduleZoo.dense import LinearNormActivation
 

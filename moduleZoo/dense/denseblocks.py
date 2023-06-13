@@ -43,7 +43,10 @@ class LinearNormActivation(nn.Module):
 
         input = input.flatten(start_dim=0, end_dim=-2)
 
-        input = self.act(self.norm_layer(self.linear(input)))
+        input = self.linear(input)
+        input = self.norm_layer(input) if self.norm_layer is not None else input
+        input = self.act(input) if self.act is not None else input
+
         input = input.view(tuple(out_dims))
 
         return input
