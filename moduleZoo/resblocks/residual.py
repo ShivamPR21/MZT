@@ -1,4 +1,4 @@
-from typing import Callable, Optional, Tuple, Union
+from typing import Callable, Tuple
 
 import torch
 import torch.nn as nn
@@ -11,10 +11,10 @@ class ConvResidualBlock2d(nn.Module):
     def __init__(self,
                  in_channels: int,
                  out_channels: int,
-                 kernel_size: Union[int, Tuple[int, int]] = 3,
-                 stride: Union[int, Tuple[int, int]] = 1,
-                 norm_layer: Optional[Callable[..., nn.Module]] = None,
-                 activation_layer: Optional[Callable[..., nn.Module]] = nn.ReLU6) -> None:
+                 kernel_size: int | Tuple[int, int] = 3,
+                 stride: int | Tuple[int, int] = 1,
+                 norm_layer: Callable[..., nn.Module] | None = None,
+                 activation_layer: Callable[..., nn.Module] | None = nn.ReLU6) -> None:
         super().__init__()
 
         self.proj_type = 'id' if stride == 1 and in_channels == out_channels else 'projection'
@@ -74,10 +74,10 @@ class ConvResidualBlock1d(nn.Module):
     def __init__(self,
                  in_channels: int,
                  out_channels: int,
-                 kernel_size: Union[int, Tuple[int, int]] = 3,
-                 stride: Union[int, Tuple[int, int]] = 1,
-                 norm_layer: Optional[Callable[..., nn.Module]] = None,
-                 activation_layer: Optional[Callable[..., nn.Module]] = None) -> None:
+                 kernel_size: int | Tuple[int, int] = 3,
+                 stride: int | Tuple[int, int] = 1,
+                 norm_layer: Callable[..., nn.Module] | None = None,
+                 activation_layer: Callable[..., nn.Module] | None = None) -> None:
         super().__init__()
 
         self.proj_type = 'id' if stride == 1 and in_channels == out_channels else 'projection'

@@ -15,7 +15,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 '''
 
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Tuple
 
 import torch.nn as nn
 
@@ -27,16 +27,16 @@ class ConvNormActivation2d(nn.Sequential):
         self,
         in_channels: int,
         out_channels: int,
-        kernel_size: Union[int, Tuple[int, int]] = 3,
-        stride: Union[int, Tuple[int, int]] = 1,
-        padding: Union[int, Tuple[int, int], str] = 0,
+        kernel_size: int | Tuple[int, int] = 3,
+        stride: int | Tuple[int, int] = 1,
+        padding: int | Tuple[int, int] | str = 0,
         groups: int = 1,
-        dilation: Union[int, Tuple[int, int]] = 1,
+        dilation: int | Tuple[int, int] = 1,
         bias: bool = True,
         transposed: bool = False,
-        output_padding: Union[int, Tuple[int, int]] = 0,
-        norm_layer: Optional[Callable[..., nn.Module]] = None,
-        activation_layer: Optional[Callable[..., nn.Module]] = None,
+        output_padding: int | Tuple[int, int] = 0,
+        norm_layer: Callable[..., nn.Module] | None = None,
+        activation_layer: Callable[..., nn.Module] | None = None,
     ) -> None:
         """Typical Convolution Normalization and Activation stack for easier implementation
 
@@ -137,8 +137,8 @@ class ConvNormActivation1d(nn.Sequential):
         bias: bool = True,
         transposed: bool = False,
         output_padding: int = 0,
-        norm_layer: Optional[Callable[..., nn.Module]] = None,
-        activation_layer: Optional[Callable[..., nn.Module]] = None,
+        norm_layer: Callable[..., nn.Module] | None = None,
+        activation_layer: Callable[..., nn.Module] | None = None,
     ) -> None:
         """Typical Convolution Normalization and Activation stack for easier implementation
 

@@ -2,7 +2,6 @@ from typing import List
 
 import numpy as np
 import torch
-
 from moduleZoo.attention import MultiHeadAttentionLinear
 
 
@@ -79,8 +78,8 @@ class MultiHeadSelfGraphAttentionLinear(MultiHeadGraphAttentionLinear):
 class SelfGraphAttentionLinear(MultiHeadSelfGraphAttentionLinear):
 
     def __init__(self, in_dim: int, out_dim: int | None = None,
-                 residual: bool = True, interpolation_mode: str | None = 'nearest', dynamic_batching : bool = False):
-        super().__init__(in_dim, out_dim, 1, residual, interpolation_mode, dynamic_batching)
+                 residual: bool = True, dynamic_batching : bool = False):
+        super().__init__(in_dim, out_dim, 1, residual, None, dynamic_batching)
 
     def forward(self, x: torch.Tensor, node_group_sizes: np.ndarray) -> torch.Tensor:
         return super().forward(x, node_group_sizes)

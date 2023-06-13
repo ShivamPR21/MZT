@@ -3,7 +3,6 @@ from typing import Callable, List
 import numpy as np
 import torch
 import torch.nn as nn
-
 from moduleZoo.attention.utils import split_cat
 from moduleZoo.dense import LinearNormActivation
 
@@ -143,13 +142,10 @@ class GraphConv(LinearNormActivation):
     def forward(self, x: torch.Tensor, batch_sizes: np.ndarray | List[int] | None = None) -> torch.Tensor:
         if batch_sizes is not None:
             if self.db:
-                print('Using static dynamic batching.')
                 x = self.dynamic_static_forward(x, batch_sizes)
             else:
-                print('Using complete dynamic batching')
                 x = self.dynamic_forward(x, batch_sizes)
         else:
-            print('Using static forward')
             x = self.static_forward(x)
 
         return x

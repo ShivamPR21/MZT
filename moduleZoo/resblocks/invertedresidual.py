@@ -15,13 +15,17 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 '''
 
-from typing import Callable, Optional, Tuple, Union
+from typing import Callable, Tuple
 
 import torch
 import torch.nn as nn
 
-from ..convolution import (ConvInvertedBlock1d, ConvInvertedBlock2d,
-                           ConvNormActivation1d, ConvNormActivation2d)
+from ..convolution import (
+    ConvInvertedBlock1d,
+    ConvInvertedBlock2d,
+    ConvNormActivation1d,
+    ConvNormActivation2d,
+)
 
 
 class ConvInvertedResidualBlock2d(ConvInvertedBlock2d):
@@ -29,11 +33,11 @@ class ConvInvertedResidualBlock2d(ConvInvertedBlock2d):
     def __init__(self,
                  in_channels: int,
                  expansion_ratio: float,
-                 out_channels: Optional[float] = None,
-                 kernel_size: Union[int, Tuple[int, int]] = 3,
-                 stride: Union[int, Tuple[int, int]] = 1,
-                 norm_layer: Optional[Callable[..., nn.Module]] = None,
-                 activation_layer: Optional[Callable[..., nn.Module]] = nn.ReLU6,
+                 out_channels: float | None = None,
+                 kernel_size: int | Tuple[int, int] = 3,
+                 stride: int | Tuple[int, int] = 1,
+                 norm_layer: Callable[..., nn.Module] | None = None,
+                 activation_layer: Callable[..., nn.Module] | None = nn.ReLU6,
                  channel_shuffle: bool = False,
                  grouping: int = 1) -> None:
         super().__init__(in_channels,
@@ -88,10 +92,10 @@ class ConvInvertedResidualBlock1d(ConvInvertedBlock1d):
     def __init__(self,
                  in_channels: int,
                  expansion_ratio: float,
-                 kernel_size: Union[int, Tuple[int, int]] = 3,
-                 stride: Union[int, Tuple[int, int]] = 1,
-                 norm_layer: Optional[Callable[..., nn.Module]] = None,
-                 activation_layer: Optional[Callable[..., nn.Module]] = nn.ReLU6,
+                 kernel_size: int | Tuple[int, int] = 3,
+                 stride: int | Tuple[int, int] = 1,
+                 norm_layer: Callable[..., nn.Module] | None = None,
+                 activation_layer: Callable[..., nn.Module] | None = nn.ReLU6,
                  channel_shuffle: bool = False,
                  grouping: int = 1) -> None:
         super().__init__(in_channels,

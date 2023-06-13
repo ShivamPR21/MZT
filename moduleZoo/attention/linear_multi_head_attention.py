@@ -128,16 +128,18 @@ class MultiHeadAttentionLinear(nn.Module):
 
 class MultiHeadSelfAttentionLinear(MultiHeadAttentionLinear):
 
-    def __init__(self, in_dim: int, out_dim: Optional[int] = None, n_heads: int = 1, residual: bool = True):
-        super().__init__(in_dim, out_dim, in_dim, out_dim, n_heads, residual, None)
+    def __init__(self, in_dim: int, out_dim: int | None = None, n_heads: int = 1, residual: bool = True):
+        super().__init__(in_dim, out_dim, None, None, n_heads, residual, None)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return super().forward(x, x)
+    def forward(self, x: torch.Tensor, proj_query: torch.Tensor | None = None,
+                proj_key: torch.Tensor | None = None, proj_value: torch.Tensor | None = None) -> torch.Tensor:
+        return super().forward(x, x, proj_query, proj_key, proj_value)
 
 class SelfAttentionLinear(MultiHeadSelfAttentionLinear):
 
-    def __init__(self, in_dim: int, out_dim: Optional[int] = None, residual: bool = True):
+    def __init__(self, in_dim: int, out_dim: int | None = None, residual: bool = True):
         super().__init__(in_dim, out_dim, 1, residual)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return super().forward(x)
+    def forward(self, x: torch.Tensor, proj_query: torch.Tensor | None = None,
+                proj_key: torch.Tensor | None = None, proj_value: torch.Tensor | None = None) -> torch.Tensor:
+        return super().forward(x, proj_query, proj_key, proj_value)
