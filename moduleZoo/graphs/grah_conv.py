@@ -3,7 +3,6 @@ from typing import Callable, List
 import numpy as np
 import torch
 import torch.nn as nn
-
 from moduleZoo.attention.utils import split_cat
 from moduleZoo.dense import LinearNormActivation
 
@@ -72,7 +71,7 @@ class GraphConv(LinearNormActivation):
         x = super().forward(x)
 
         if self.reduction == 'max':
-            x = x.max(dim=2)[0] # [B, n, d']
+            x = x.max(dim=2).values # [B, n, d']
         elif self.reduction == 'mean':
             x = x.mean(dim=2) # [B, n, d']
         else:
@@ -132,7 +131,7 @@ class GraphConv(LinearNormActivation):
         x = super().forward(x) # [N, k, d']
 
         if self.reduction == 'max':
-            x = x.max(dim=2)[0] # [B, n, d']
+            x = x.max(dim=2).values # [B, n, d']
         elif self.reduction == 'mean':
             x = x.mean(dim=2) # [B, n, d']
         else:
@@ -143,9 +142,16 @@ class GraphConv(LinearNormActivation):
     def forward(self, x: torch.Tensor, batch_sizes: np.ndarray | List[int] | None = None) -> torch.Tensor:
         if batch_sizes is not None:
             if self.db:
-                x = self.dynamic_static_forward(x, batch_sizes)
+                ub = np.unique(batch_sizes)
+                if len(ub) == 1:
+                    x = self.static_forward(x.view(-1, ub[0], x.size()[-1])).flatten(0, 1)
+                    # print('using Dynamic Static Forward')
+                else:
+                    x = self.dynamic_static_forward(x, batch_sizes)
+                    # print('using Dynamic Static Forward')
             else:
                 x = self.dynamic_forward(x, batch_sizes)
+                # print('using Dynamic Forward')
         else:
             x = self.static_forward(x)
 
