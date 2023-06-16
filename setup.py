@@ -28,6 +28,7 @@ setup(
               'moduleZoo.graphs',
               'modelZoo',
               'modelZoo.graphs',
+              'modelZoo.graphs.attention',
               'mzLosses',
               'mzExtras'],
     long_description=read('README.md'),
