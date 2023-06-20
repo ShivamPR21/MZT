@@ -15,14 +15,15 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 '''
 
-from typing import Any, Callable, Dict, List, Tuple
+from typing import Any, Callable, Dict, List, Tuple, Type
 
+import torch
 import torch.nn as nn
 
 from ..utils import _pair
 
 
-class ConvNormActivation2d(nn.Sequential):
+class ConvNormActivation2d(nn.Module):
     def __init__(
         self,
         in_channels: int,
@@ -52,6 +53,7 @@ class ConvNormActivation2d(nn.Sequential):
             dilation (int, optional): Dilation used in convolution (passed in nn.Conv2D). Defaults to 1.
             inplace (bool, optional): Whether to use inplace operations or not. Defaults to True.
         """
+        super().__init__()
         if padding == 'stride_effective':
             padding = (kernel_size - 1) // 2 * dilation
 
@@ -73,42 +75,46 @@ class ConvNormActivation2d(nn.Sequential):
                     'bias': bias,
                     'transposed': transposed}
 
-        layers:List[nn.Module] = None
+        self.conv: Type[nn.Module] = None
 
         if transposed:
-            layers = [
-                nn.ConvTranspose2d(
-                    in_channels,
-                    out_channels,
-                    kernel_size,
-                    stride,
-                    padding,
-                    output_padding=output_padding,
-                    dilation=dilation,
-                    groups=groups,
-                    bias=bias,
-                )
-            ]
+            self.conv = nn.ConvTranspose2d(
+                            in_channels,
+                            out_channels,
+                            kernel_size,
+                            stride,
+                            padding,
+                            output_padding=output_padding,
+                            dilation=dilation,
+                            groups=groups,
+                            bias=bias,
+                        )
         else:
-            layers = [
-                nn.Conv2d(
-                    in_channels,
-                    out_channels,
-                    kernel_size,
-                    stride,
-                    padding,
-                    dilation=dilation,
-                    groups=groups,
-                    bias=bias,
-                )
-            ]
-        if norm_layer is not None:
-            layers.append(norm_layer(out_channels))
-        if activation_layer is not None:
-            layers.append(activation_layer())
-        super().__init__(*layers)
+            self.conv = nn.Conv2d(
+                            in_channels,
+                            out_channels,
+                            kernel_size,
+                            stride,
+                            padding,
+                            dilation=dilation,
+                            groups=groups,
+                            bias=bias,
+                        )
+
+        self.norm = norm_layer(out_channels) if norm_layer is not None else None
+
+        self.act = activation_layer() if activation_layer is not None else None
+
         self.cfg.update({'dim_cnst0': 0 if padding == 'same' else (2 * padding[0] - dilation[0] * ( kernel_size[0] - 1 ) - 1),
                          'dim_cnst1': 0 if padding == 'same' else (2 * padding[1] - dilation[1] * ( kernel_size[1] - 1 ) - 1)})
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+
+        x = self.conv(x)
+        x = self.norm(x) if self.norm is not None else x
+        x = self.act(x) if self.act is not None else x
+
+        return x
 
     def shape(self, in_shape: Tuple[int, int]):
         H, W = in_shape

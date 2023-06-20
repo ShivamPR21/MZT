@@ -20,12 +20,8 @@ from typing import Callable, Tuple
 import torch
 import torch.nn as nn
 
-from ..convolution import (
-    ConvInvertedBlock1d,
-    ConvInvertedBlock2d,
-    ConvNormActivation1d,
-    ConvNormActivation2d,
-)
+from ..convolution import (ConvInvertedBlock1d, ConvInvertedBlock2d,
+                           ConvNormActivation1d, ConvNormActivation2d)
 
 
 class ConvInvertedResidualBlock2d(ConvInvertedBlock2d):
@@ -52,8 +48,8 @@ class ConvInvertedResidualBlock2d(ConvInvertedBlock2d):
 
         self.proj_type = 'id' if stride == 1 else 'projection'
 
-        self.projection = ConvNormActivation2d(in_channels,
-                                                in_channels,
+        self.projection = ConvNormActivation2d(self.in_channels,
+                                                self.out_channels,
                                                 1,
                                                 stride,
                                                 padding='stride_effective',
@@ -72,10 +68,9 @@ class ConvInvertedResidualBlock2d(ConvInvertedBlock2d):
 
         if self.projection is not None:
             x = self.projection(x) + x_
-            x = self.activation(x) if self.activation is not None else x
-            return x
+        else:
+            x = x + x_
 
-        x = x + x_
         x = self.activation(x) if self.activation is not None else x
         return x
 
@@ -109,8 +104,8 @@ class ConvInvertedResidualBlock1d(ConvInvertedBlock1d):
 
         self.proj_type = 'id' if stride == 1 else 'projection'
 
-        self.projection = ConvNormActivation1d(in_channels,
-                                                in_channels,
+        self.projection = ConvNormActivation1d(self.in_channels,
+                                                self.out_channels,
                                                 1,
                                                 stride,
                                                 padding='stride_effective',

@@ -37,6 +37,7 @@ class ConvInvertedBlock2d(nn.Module):
                  grouping: int = 1) -> None:
         super().__init__()
 
+        self.in_channels = in_channels
         self.hidden_channels = round(in_channels * expansion_ratio)
         self.out_channels = in_channels if out_channels is None else out_channels
 
@@ -105,6 +106,7 @@ class ConvInvertedBlock1d(nn.Module):
                  grouping: int = 1) -> None:
         super().__init__()
 
+        self.in_channels = in_channels
         self.hidden_channels = round(in_channels * expansion_ratio)
         self.out_channels = in_channels if out_channels is None else out_channels
 
