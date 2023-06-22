@@ -46,7 +46,7 @@ class ConvInvertedResidualBlock2d(ConvInvertedBlock2d):
                          channel_shuffle,
                          grouping)
 
-        self.proj_type = 'id' if stride == 1 else 'projection'
+        self.proj_type = 'id' if stride == 1 and self.out_channels == self.in_channels else 'projection'
 
         self.projection = ConvNormActivation2d(self.in_channels,
                                                 self.out_channels,

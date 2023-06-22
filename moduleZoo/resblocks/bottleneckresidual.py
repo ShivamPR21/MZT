@@ -18,18 +18,18 @@ class ConvBottleNeckResidualBlock2d(nn.Module):
                  activation_layer: Callable[..., nn.Module] | None = nn.ReLU6) -> None:
         super().__init__()
 
-
+        self.in_channels = in_channels
         self.activation = activation_layer() if activation_layer is not None else None
 
-        hidden_channels = in_channels//reduction_ratio
-        assert(hidden_channels != 0)
+        self.hidden_channels = in_channels//reduction_ratio
+        assert(self.hidden_channels != 0)
 
-        out_channels = in_channels if out_channels is None else out_channels
+        self.out_channels = in_channels if out_channels is None else out_channels
 
         self.proj_type = 'id' if stride == 1 and in_channels == out_channels else 'projection'
 
-        self.conv1 = ConvNormActivation2d(in_channels,
-                                          hidden_channels,
+        self.conv1 = ConvNormActivation2d(self.in_channels,
+                                          self.hidden_channels,
                                           1,
                                           stride,
                                           padding='stride_effective',
@@ -37,24 +37,24 @@ class ConvBottleNeckResidualBlock2d(nn.Module):
                                           norm_layer=norm_layer,
                                           activation_layer=activation_layer)
 
-        self.conv2 = ConvNormActivation2d(hidden_channels,
-                                          hidden_channels,
+        self.conv2 = ConvNormActivation2d(self.hidden_channels,
+                                          self.hidden_channels,
                                           kernel_size,
                                           padding='stride_effective',
                                           bias=True if norm_layer is None else False,
                                           norm_layer=norm_layer,
                                           activation_layer=None) # TODO@ShivamPR21: #8 Padding `same` applied though proxy (`stride_effective, stride=1`) for onnx support
 
-        self.conv3 = ConvNormActivation2d(hidden_channels,
-                                          out_channels,
+        self.conv3 = ConvNormActivation2d(self.hidden_channels,
+                                          self.out_channels,
                                           1,
                                           padding='stride_effective',
                                           bias=True if norm_layer is None else False,
                                           norm_layer=norm_layer,
                                           activation_layer=None) # TODO@ShivamPR21: #8 Padding `same` applied though proxy (`stride_effective, stride=1`) for onnx support
 
-        self.projection = ConvNormActivation2d(in_channels,
-                                                out_channels,
+        self.projection = ConvNormActivation2d(self.in_channels,
+                                                self.out_channels,
                                                 1,
                                                 stride,
                                                 padding='stride_effective',
@@ -98,17 +98,18 @@ class ConvBottleNeckResidualBlock1d(nn.Module):
                  activation_layer: Callable[..., nn.Module] | None = None) -> None:
         super().__init__()
 
+        self.in_channels = in_channels
         self.activation = activation_layer() if activation_layer is not None else None
 
-        hidden_channels = in_channels//reduction_ratio
-        assert(hidden_channels != 0)
+        self.hidden_channels = in_channels//reduction_ratio
+        assert(self.hidden_channels != 0)
 
-        out_channels = in_channels if out_channels is None else out_channels
+        self.out_channels = in_channels if out_channels is None else out_channels
 
         self.proj_type = 'id' if stride == 1 and in_channels == out_channels else 'projection'
 
-        self.conv1 = ConvNormActivation1d(in_channels,
-                                          hidden_channels,
+        self.conv1 = ConvNormActivation1d(self.in_channels,
+                                          self.hidden_channels,
                                           1,
                                           stride,
                                           padding='stride_effective',
@@ -116,15 +117,15 @@ class ConvBottleNeckResidualBlock1d(nn.Module):
                                           norm_layer=norm_layer,
                                           activation_layer=activation_layer)
 
-        self.conv2 = ConvNormActivation1d(hidden_channels,
-                                          hidden_channels,
+        self.conv2 = ConvNormActivation1d(self.hidden_channels,
+                                          self.hidden_channels,
                                           kernel_size,
                                           padding='stride_effective',
                                           bias=True if norm_layer is None else False,
                                           norm_layer=norm_layer,
                                           activation_layer=None) # TODO@ShivamPR21: #8 Padding `same` applied though proxy (`stride_effective, stride=1`) for onnx support
 
-        self.conv3 = ConvNormActivation1d(hidden_channels,
+        self.conv3 = ConvNormActivation1d(self.hidden_channels,
                                           out_channels,
                                           1,
                                           padding='stride_effective',
@@ -132,8 +133,8 @@ class ConvBottleNeckResidualBlock1d(nn.Module):
                                           norm_layer=norm_layer,
                                           activation_layer=None) # TODO@ShivamPR21: #8 Padding `same` applied though proxy (`stride_effective, stride=1`) for onnx support
 
-        self.projection = ConvNormActivation1d(in_channels,
-                                                out_channels,
+        self.projection = ConvNormActivation1d(self.in_channels,
+                                                self.out_channels,
                                                 1,
                                                 stride,
                                                 padding='stride_effective',
