@@ -12,6 +12,8 @@ from .utils import knn_features
 def get_graph_features(x: torch.Tensor, idx: torch.Tensor | None = None, k: int | None = None, mode: str = 'local+global') -> torch.Tensor:
     B, n, d = x.size() # [B, n, d]
 
+    k = min(n, k) if idx is None else k
+
     features = knn_features(x, idx, k) # [B, n, k, d]
     x = x.view(B, n, 1, d).repeat(1, 1, k, 1) # [B, n, k, d]
 
