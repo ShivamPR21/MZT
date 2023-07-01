@@ -1,0 +1,31 @@
+package:
+  name: "mzt"
+  version: 1.2.0
+
+source:
+  git_rev: v1.2.0-Alpha
+  git_url: https://github.com/ShivamPR21/MZT.git
+
+requirements:
+  host:
+    - python
+    - setuptools
+  build:
+    - python
+  run:
+    - python
+    - numpy
+    - pytorch
+    - typing
+    - typing-extensions
+
+about:
+  home: https://github.com/ShivamPR21/MZT.git
+  license: AGPLv3+
+  license_familY: AGPL
+  license_file: LICENSE
+  summary: "Package to host DeepLearning modules for pytorch ecosystem, to ease out model implementations and iterations."
+
+extra:
+  recipe-maintainers:
+    - ShivamPR21

@@ -12,14 +12,14 @@ def read(fname):
 
 setup(
     name = "mzt",
-    version = "1.1.6",
+    version = "1.2.0",
     author = "Shivam Pandey",
     author_email = "pandeyshivam2017robotics@gmail.com",
     description = ("Package to host DeepLearning modules for pytorch ecosystem,"
                    " to ease out model implementations."),
     license = "AGPLv3+",
     keywords = "DeepLearning Pytorch Modules",
-    url = "https://github.com/ShivamPR21/ModuleZooTorch.git",
+    url = "https://github.com/ShivamPR21/MZT.git",
     packages=['moduleZoo',
               'moduleZoo.convolution',
               'moduleZoo.resblocks',
@@ -27,8 +27,6 @@ setup(
               'moduleZoo.dense',
               'moduleZoo.graphs',
               'moduleZoo.graphs.attention',
-              'modelZoo',
-              'modelZoo.graphs',
               'mzLosses',
               'mzExtras'],
     long_description=read('README.md'),
