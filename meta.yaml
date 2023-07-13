@@ -3,8 +3,7 @@ package:
   version: 1.2.0
 
 source:
-  git_rev: v1.2.0-Alpha
-  git_url: https://github.com/ShivamPR21/MZT.git
+  path: ./
 
 requirements:
   host:

@@ -3,23 +3,29 @@ from typing import Optional
 import torch
 
 
-def knn(x: torch.Tensor, k: int) -> torch.Tensor:
+def knn(x: torch.Tensor, k: int, similarity: str = 'euclidean') -> torch.Tensor:
     # Assumed shape of x -> [B, n, d]
-    x = x.unsqueeze(dim=1) # [B, 1, n, d]
-    n_x = x.transpose(2, 1) # [B, n, 1, d]
+    if similarity == 'euclidean':
+        x = x.unsqueeze(dim=1) # [B, 1, n, d]
+        n_x = x.transpose(2, 1) # [B, n, 1, d]
+        x = -torch.sum((x - n_x)**2, dim=-1) # [B, n, n]
+    elif similarity == 'cosine':
+        x = x / (x.norm(dim=-1, keepdim=True) + 1e-9)
+        x = torch.bmm(x, x.transpose(1, 2)) # [B, n, n]
+    else:
+        raise NotImplementedError(f'Distance metric {similarity} is not implemented.')
 
-    x = -torch.sum((x - n_x)**2, dim=-1) # [B, n, n]
     idx = x.topk(k, dim=-1, sorted=True)[1] # [B, n, k], sorted indexes
 
     return idx
 
-def knn_features(x: torch.Tensor, idx: Optional[torch.Tensor] = None, k: Optional[int] = None) -> torch.Tensor:
+def knn_features(x: torch.Tensor, idx: Optional[torch.Tensor] = None, k: Optional[int] = None, similarity: str = 'euclidean') -> torch.Tensor:
     assert(idx is not None or k is not None)
 
     B, n, d = x.size()
 
     if idx is None:
-        idx = knn(x, k) # [B, n, k]
+        idx = knn(x, k, similarity) # [B, n, k]
 
     device = x.device
 

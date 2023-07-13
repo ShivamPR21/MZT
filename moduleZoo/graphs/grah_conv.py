@@ -9,12 +9,12 @@ from moduleZoo.dense import LinearNormActivation
 from .utils import knn_features
 
 
-def get_graph_features(x: torch.Tensor, idx: torch.Tensor | None = None, k: int | None = None, mode: str = 'local+global') -> torch.Tensor:
+def get_graph_features(x: torch.Tensor, idx: torch.Tensor | None = None, k: int | None = None, mode: str = 'local+global', similarity: str = 'euclidean') -> torch.Tensor:
     B, n, d = x.size() # [B, n, d]
 
     k = min(n, k) if idx is None else k
 
-    features = knn_features(x, idx, k) # [B, n, k, d]
+    features = knn_features(x, idx, k, similarity) # [B, n, k, d]
     x = x.view(B, n, 1, d).repeat(1, 1, k, 1) # [B, n, k, d]
 
     if mode == 'local+global':
@@ -37,6 +37,7 @@ class GraphConv(LinearNormActivation):
                  k: int = 10,
                  reduction: str = 'max',
                  features: str = 'local+global',
+                 similarity: str = 'euclidean', # cosine
                  norm_layer: Callable[..., nn.Module] | None = None,
                  activation_layer: Callable[..., nn.Module] | None = None,
                  dynamic_batching: bool = False,
@@ -49,6 +50,7 @@ class GraphConv(LinearNormActivation):
 
         self.k = k
         self.reduction = reduction
+        self.similarity = similarity
         self.features = features
         self.db = dynamic_batching
         self.matrix_op_device = torch.device('cpu') if enable_offloading else None
@@ -62,7 +64,7 @@ class GraphConv(LinearNormActivation):
         if self.matrix_op_device is not None and source_device != self.matrix_op_device:
             x = x.to(self.matrix_op_device)
 
-        x = get_graph_features(x, None, self.k, self.features) # [B, n, k, 2*d]
+        x = get_graph_features(x, None, self.k, self.features, self.similarity) # [B, n, k, 2*d]
 
         if source_device != x.device:
             x = x.to(source_device)
@@ -121,7 +123,7 @@ class GraphConv(LinearNormActivation):
             x = x.to(self.matrix_op_device)
 
         x = torch.cat(
-            [get_graph_features(x_, None, self.k, self.features) for x_ in x.unsqueeze(dim=0).split(node_group_sizes, dim=1)],
+            [get_graph_features(x_, None, self.k, self.features, self.similarity) for x_ in x.unsqueeze(dim=0).split(node_group_sizes, dim=1)],
         dim=0).squeeze(dim=0) # [N, k, d]
 
         if source_device != x.device:
