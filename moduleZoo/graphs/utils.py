@@ -10,12 +10,12 @@ def knn(x: torch.Tensor, k: int, similarity: str = 'euclidean') -> torch.Tensor:
         n_x = x.transpose(2, 1) # [B, n, 1, d]
         x = -torch.sum((x - n_x)**2, dim=-1) # [B, n, n]
     elif similarity == 'cosine':
-        x = x / (x.norm(dim=-1, keepdim=True) + 1e-9)
+        x = (x - x.mean(dim=1, keepdim=True)) / (x.norm(dim=-1, keepdim=True) + 1e-9)
         x = torch.bmm(x, x.transpose(1, 2)) # [B, n, n]
     else:
         raise NotImplementedError(f'Distance metric {similarity} is not implemented.')
 
-    idx = x.topk(k, dim=-1, sorted=True)[1] # [B, n, k], sorted indexes
+    idx = x.topk(k, dim=-1, sorted=True).indices # [B, n, k], sorted indexes
 
     return idx
 
