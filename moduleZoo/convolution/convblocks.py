@@ -104,10 +104,10 @@ class ConvNormActivation2d(nn.Module):
         self.norm = None
 
         if norm_layer is not None:
-            if isinstance(norm_layer, nn.LayerNorm):
-                self.norm = norm_layer(out_channels)
-            else:
+            try:
                 self.norm = norm_layer(out_channels, affine=True)
+            except TypeError:
+                self.norm = norm_layer(out_channels)
 
         self.act = activation_layer() if activation_layer is not None else None
 
