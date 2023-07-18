@@ -33,13 +33,13 @@ class LinearNormActivation(nn.Module):
                 bias=bias,
             )
 
-        self.norm = None
+        self.norm_layer = None
 
         if norm_layer is not None:
             if norm_layer == nn.LayerNorm:
-                self.norm = norm_layer(out_dims, elementwise_affine=True)
+                self.norm_layer = norm_layer(out_dims, elementwise_affine=True)
             else:
-                self.norm = norm_layer(out_dims, affine=True)
+                self.norm_layer = norm_layer(out_dims, affine=True)
 
         self.act = activation_layer() if activation_layer is not None else None
 
@@ -50,8 +50,10 @@ class LinearNormActivation(nn.Module):
         input = input.flatten(start_dim=0, end_dim=-2)
 
         input = self.linear(input)
-        input = self.norm_layer(input) if self.norm_layer is not None else input
-        input = self.act(input) if self.act is not None else input
+        if self.norm_layer is not None:
+            input = self.norm_layer(input)
+        if self.act is not None:
+            input = self.act(input)
 
         input = input.view(tuple(out_dims))
 

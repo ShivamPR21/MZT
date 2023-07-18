@@ -101,13 +101,13 @@ class ConvNormActivation2d(nn.Module):
                             bias=bias,
                         )
 
-        self.norm = None
+        self.norm_layer = None
 
         if norm_layer is not None:
             if norm_layer == nn.LayerNorm:
-                self.norm = norm_layer(out_channels, elementwise_affine=True)
+                self.norm_layer = norm_layer(out_channels, elementwise_affine=True)
             else:
-                self.norm = norm_layer(out_channels, affine=True)
+                self.norm_layer = norm_layer(out_channels, affine=True)
 
         self.act = activation_layer() if activation_layer is not None else None
 
@@ -117,8 +117,10 @@ class ConvNormActivation2d(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
 
         x = self.conv(x)
-        x = self.norm(x) if self.norm is not None else x
-        x = self.act(x) if self.act is not None else x
+        if self.norm_layer is not None:
+            x = self.norm_layer(x)
+        if self.act is not None:
+            x = self.act(x)
 
         return x
 
