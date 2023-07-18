@@ -33,7 +33,13 @@ class LinearNormActivation(nn.Module):
                 bias=bias,
             )
 
-        self.norm_layer = norm_layer(out_dims, affine=True) if norm_layer is not None else None
+        self.norm = None
+
+        if norm_layer is not None:
+            if isinstance(norm_layer, nn.LayerNorm):
+                self.norm = norm_layer(out_dims)
+            else:
+                self.norm = norm_layer(out_dims, affine=True)
 
         self.act = activation_layer() if activation_layer is not None else None
 
