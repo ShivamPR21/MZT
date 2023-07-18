@@ -101,7 +101,7 @@ class ConvNormActivation2d(nn.Module):
                             bias=bias,
                         )
 
-        self.norm = norm_layer(out_channels) if norm_layer is not None else None
+        self.norm = norm_layer(out_channels, affine=True) if norm_layer is not None else None
 
         self.act = activation_layer() if activation_layer is not None else None
 
