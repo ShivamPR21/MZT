@@ -1,0 +1,75 @@
+[build-system]
+requires = ["scikit-build-core",
+            "nanobind",
+            "hatch",
+            "hatch-fancy-pypi-readme"
+]
+
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "mzt"
+version = "1.2.0"
+description = "Package to host DeepLearning modules for pytorch ecosystem, to ease out model implementations."
+license = { text = "AGPLv3" }
+requires-python = ">=3.11"
+authors = [
+    { name = "Shivam Pandey", email = "pandeyshivam2023robotics+clort@gmail.com" },
+]
+
+classifiers=[
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache-2.0 License",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Unix",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Research",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Deep Learning"
+]
+
+dependencies = [
+    "torch",
+    "numpy>=1.25.0",
+    "packaging",
+    "typing_extensions>=4.7.0"
+]
+
+dynamic = [
+    "readme"
+]
+
+[project.urls]
+"Bug Tracker" = "https://github.com/ShivamPR21/MZT/issues"
+"Chat" = "https://github.com/ShivamPR21/MZT/discussions"
+"Discussions" = "https://github.com/ShivamPR21/MZT/discussions"
+"Documentation" = "https://awkward-array.org"
+"Homepage" = "https://github.com/ShivamPR21/MZT"
+"Releases" = "https://github.com/ShivamPR21/MZT/releases"
+"Source Code" = "https://github.com/ShivamPR21/MZT"
+
+[tool.scikit-build]
+build-dir = "build/{wheel_tag}"
+metadata.readme.provider = "scikit_build_core.metadata.fancy_pypi_readme"
+
+[tool.hatch.metadata.hooks.fancy-pypi-readme]
+content-type = "text/markdown"
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.fragments]]
+path = "README.md"
+
+# [[tool.hatch.metadata.hooks.fancy-pypi-readme.fragments]]
+# text = "Fragment #2"
+
+[[tool.scikit-build.generate]]
+path = "_version.py"
+location = "source"
+template = '''
+version = "${version}"
+'''
