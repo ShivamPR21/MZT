@@ -16,7 +16,6 @@ requires-python = ">=3.11"
 authors = [
     { name = "Shivam Pandey", email = "pandeyshivam2023robotics+clort@gmail.com" },
 ]
-
 classifiers=[
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
@@ -33,26 +32,16 @@ classifiers=[
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Scientific/Engineering :: Deep Learning"
 ]
-
 dependencies = [
     "torch",
     "numpy>=1.25.0",
     "packaging",
     "typing_extensions>=4.7.0"
 ]
-
 dynamic = [
     "readme"
 ]
 
-[project.urls]
-"Bug Tracker" = "https://github.com/ShivamPR21/MZT/issues"
-"Chat" = "https://github.com/ShivamPR21/MZT/discussions"
-"Discussions" = "https://github.com/ShivamPR21/MZT/discussions"
-"Documentation" = "https://awkward-array.org"
-"Homepage" = "https://github.com/ShivamPR21/MZT"
-"Releases" = "https://github.com/ShivamPR21/MZT/releases"
-"Source Code" = "https://github.com/ShivamPR21/MZT"
 
 [tool.scikit-build]
 build-dir = "build/{wheel_tag}"
@@ -73,3 +62,24 @@ location = "source"
 template = '''
 version = "${version}"
 '''
+[project.optional-dependencies]
+docs = [
+    "furo",
+    "myst-parser >=0.13",
+    "pathspec >=0.10.1",
+    "pyproject-metadata >=0.5",
+    "sphinx >=7.0,<=7.1.2",  # workaround bug in setuptools, fix in pypa/setuptools#4023
+    "sphinx-copybutton",
+    "sphinx-inline-tabs",
+    "sphinx-jsonschema",
+    "sphinx-autodoc-typehints",
+]
+
+[project.urls]
+"Bug Tracker" = "https://github.com/ShivamPR21/MZT/issues"
+"Chat" = "https://github.com/ShivamPR21/MZT/discussions"
+"Discussions" = "https://github.com/ShivamPR21/MZT/discussions"
+"Documentation" = "https://awkward-array.org"
+"Homepage" = "https://github.com/ShivamPR21/MZT"
+"Releases" = "https://github.com/ShivamPR21/MZT/releases"
+"Source Code" = "https://github.com/ShivamPR21/MZT"
