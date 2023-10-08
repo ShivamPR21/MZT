@@ -3,7 +3,7 @@ from .attention import (
     MultiHeadSelfGraphAttentionLinear,
     SelfGraphAttentionLinear,
 )
-from .grah_conv import GraphConv
+from .graph_conv import GraphConv
 
 __all__ = ('GraphConv',
            'MultiHeadGraphAttentionLinear',
