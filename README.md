@@ -1,6 +1,8 @@
 # ModuleZooTorch
 
-Collection of neural-net modules introduced in latest research
+Collection of neural-net modules including both general blocks, and those introduced in latest research
+
+> The library is still under development, if you have some cool NN blocks in mind that deserves to be implemented in MZT please don't hesitate to open an issue with feature request, I'll try my best to implement those ASAP.
 
 ## Installation
 
@@ -10,7 +12,7 @@ pip install mzt
 
 ## Available Modules
 
-- Convolutional Blocks:
+- Convolution Blocks:
   - ConvNormActivation1d
   - ConvNormActivation2d
   - ConvInvertedBlock1d
