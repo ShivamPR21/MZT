@@ -1,8 +1,4 @@
-import attention
-import convolution
-import graphs
-import resblocks
-import extensions
+from . import attention, convolution, graphs, resblocks, extensions
 
 __all__ = (
     'attention',
