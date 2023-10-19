@@ -4,6 +4,8 @@ from .graph_linear_multi_head_attention import (
     SelfGraphAttentionLinear,
 )
 
-__all__ = ('MultiHeadGraphAttentionLinear',
-           'MultiHeadSelfGraphAttentionLinear',
-           'SelfGraphAttentionLinear')
+__all__ = (
+    "MultiHeadGraphAttentionLinear",
+    "MultiHeadSelfGraphAttentionLinear",
+    "SelfGraphAttentionLinear",
+)

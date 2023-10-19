@@ -11,12 +11,14 @@ from .linear_multi_head_attention import (
     SelfAttentionLinear,
 )
 
-__all__ = ('SelfAttention1d',
-           'SelfAttention2d',
-           'MultiHeadSelfAttention1d',
-           'MultiHeadSelfAttention2d',
-           'MultiHeadAttention1d',
-           'MultiHeadAttention2d',
-           'MultiHeadAttentionLinear',
-           'MultiHeadSelfAttentionLinear',
-           'SelfAttentionLinear')
+__all__ = (
+    "SelfAttention1d",
+    "SelfAttention2d",
+    "MultiHeadSelfAttention1d",
+    "MultiHeadSelfAttention2d",
+    "MultiHeadAttention1d",
+    "MultiHeadAttention2d",
+    "MultiHeadAttentionLinear",
+    "MultiHeadSelfAttentionLinear",
+    "SelfAttentionLinear",
+)

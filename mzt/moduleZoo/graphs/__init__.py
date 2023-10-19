@@ -5,7 +5,9 @@ from .attention import (
 )
 from .graph_conv import GraphConv
 
-__all__ = ('GraphConv',
-           'MultiHeadGraphAttentionLinear',
-           'MultiHeadSelfGraphAttentionLinear',
-           'SelfGraphAttentionLinear')
+__all__ = (
+    "GraphConv",
+    "MultiHeadGraphAttentionLinear",
+    "MultiHeadSelfGraphAttentionLinear",
+    "SelfGraphAttentionLinear",
+)

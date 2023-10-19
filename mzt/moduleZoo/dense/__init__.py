@@ -1,4 +1,3 @@
 from .denseblocks import LinearNormActivation
 
-__all__ = (
-    'LinearNormActivation',)
+__all__ = ("LinearNormActivation",)

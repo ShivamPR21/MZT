@@ -23,15 +23,17 @@ class LinearNormActivation(nn.Module):
             activation_layer (Optional[Callable[..., nn.Module]], optional): _description_. Defaults to None.
         """
         super().__init__()
-        self.cfg: Dict[str, Any] = {'in_dims': in_dims,
-                                    'out_dims': out_dims,
-                                    'bias': bias}
+        self.cfg: Dict[str, Any] = {
+            "in_dims": in_dims,
+            "out_dims": out_dims,
+            "bias": bias,
+        }
 
         self.linear = nn.Linear(
-                in_dims,
-                out_dims,
-                bias=bias,
-            )
+            in_dims,
+            out_dims,
+            bias=bias,
+        )
 
         self.norm_layer = None
 
@@ -45,7 +47,7 @@ class LinearNormActivation(nn.Module):
 
     def forward(self, input):
         input_dims = input.size()
-        out_dims = (input_dims[:-1] + torch.Size([self.shape()]))
+        out_dims = input_dims[:-1] + torch.Size([self.shape()])
 
         input = input.flatten(start_dim=0, end_dim=-2)
 
