@@ -19,7 +19,7 @@ class MultiHeadAttention2d(nn.Module):
                  residual: bool = True,
                  kernel_size: int | Tuple[int, int] = 1,
                  interpolation_mode: str | None = 'nearest',
-                 channel_cross_attention: bool = False):
+                 _cross_attention: bool = False):
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = in_channels if out_channels is None else out_channels
@@ -30,7 +30,7 @@ class MultiHeadAttention2d(nn.Module):
         self.n_heads = n_heads
         self.residual = residual
         self.interpolation_mode = interpolation_mode
-        self.chxa = channel_cross_attention
+        self._xa = _cross_attention #TODO@ShivamPR21: Supply Better Name
 
         self.out_channels *= n_heads
         self.y_out_channels *= n_heads
@@ -49,7 +49,7 @@ class MultiHeadAttention2d(nn.Module):
         self.softmax = nn.Softmax(dim=-1)
 
     def extract_qkv(self, x: torch.Tensor, y: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        q, k, v = self.query_conv(x), self.key_conv(x), self.value_conv(y) # [B*k X (C | OC*n) X H X W]
+        q, k, v = self.query_conv(x), self.key_conv(y), self.value_conv(y) # [B*k X (C | OC*n) X H X W]
         return q, k, v
 
     def forward(self, x: torch.Tensor, y: torch.Tensor,
@@ -59,8 +59,8 @@ class MultiHeadAttention2d(nn.Module):
                 mask: torch.Tensor | None = None) -> torch.Tensor:
         """
             inputs :
-                x : input feature maps( B X k X C X W X H)
-                y : feature map attention to be applied ( B X k X C X W_o X H_o)
+                x : input feature maps( B X k_q X C X W X H)
+                y : feature map attention to be applied ( B X k_v X C X W_o X H_o)
             returns :
                 out : self attention value or + input feature
         """
@@ -74,77 +74,85 @@ class MultiHeadAttention2d(nn.Module):
             y = y.unsqueeze(dim=1)
             final_squeeze = True
 
-        assert(x.ndim == 5 and y.ndim == 5)
+        if not (x.ndim == 5 and y.ndim == 5):
+            raise ValueError(f'Got {x.ndim = } and {y.ndim = } should be 5')
 
         b, k, c, h, w = x.size()
         B, K, C, H, W = y.size()
 
-        assert(b == B and k == K)
+        if not (b == B):
+            raise ValueError(f'Batch size of both input doesn\'t match, given {b = } and {B = }')
 
         x, y = x.view(b*k, c, h, w), y.view(B*K, c, H, W)
 
         if h != H or w != W:
-            assert(self.interpolation_mode is not None)
+            if (self.interpolation_mode is None):
+                raise ValueError("Interpolation mode expected.")
+
             x = interpolate(x, (H, W), mode=self.interpolation_mode) # [B*k, c, H, W]
 
         if (proj_query is None or proj_key is None or proj_value is None):
             proj_query, proj_key, proj_value = self.extract_qkv(x, y)
 
-            # [B X k X (C/r)*n_heads X H X W], [B X k X (C/r)*n_heads X H X W], [B X k X (OC)*n_heads X H X W]
+            # [B X k_q X (C/r)*n_heads X H X W], [B X k_k X (C/r)*n_heads X H X W], [B X k_v == k_k X (OC)*n_heads X H X W]
             proj_query, proj_key, proj_value = \
                 proj_query.view(B, k, self.out_channels, H, W), \
-                    proj_key.view(B, k, self.out_channels, H, W), \
+                    proj_key.view(B, K, self.out_channels, H, W), \
                         proj_value.view(B, K, self.y_out_channels, H, W)
 
-        # [B X (C/r)*n_heads X k X N], [B X (C/r)*n_heads X k X N], [B X (OC)*n_heads X k X N]
+        # [B X k_q X N X (C/r)*n_heads], [B X k_k X N X (C/r)*n_heads], [B X k_v == k_k X N X (OC)*n_heads]
         proj_query, proj_key, proj_value = \
-            proj_query.flatten(start_dim=-2).permute(0, 2, 1, 3), \
-                proj_key.flatten(start_dim=-2).permute(0, 2, 1, 3), \
-                    proj_value.flatten(start_dim=-2).permute(0, 2, 1, 3)
+            proj_query.flatten(start_dim=-2).transpose(2, 3), \
+                proj_key.flatten(start_dim=-2).transpose(2, 3), \
+                    proj_value.flatten(start_dim=-2).transpose(2, 3)
 
         if self.n_heads != 1:
             split_size = [self.out_channels//self.n_heads, self.out_channels//self.n_heads, self.y_out_channels//self.n_heads]
-            # n_heads*B X (C/r) X k X N, n_heads*B X (C/r) X k X N, n_heads*B X OC X k X N
+            # n_heads*B X k_q X N X (C/r), n_heads*B X k_k X N X (C/r), n_heads*B X k_v == k_k X N X OC
             proj_query, proj_key, proj_value = \
-                split_cat(proj_query, split_size[0], 1, 0), split_cat(proj_key, split_size[1], 1, 0), split_cat(proj_value, split_size[2], 1, 0)
+                split_cat(proj_query, split_size[0], -1, 0), split_cat(proj_key, split_size[1], -1, 0), split_cat(proj_value, split_size[2], -1, 0)
 
-        if self.chxa:
+        #TODO@ShivamPR21: Another level of attention is possible allow it.
+        if self._xa:
             st_dim, end_dim = 1, 2
         else:
             st_dim, end_dim = 0, 1
+
 
         proj_query, proj_key, proj_value = \
             proj_query.flatten(st_dim, end_dim), \
                 proj_key.flatten(st_dim, end_dim), \
                     proj_value.flatten(st_dim, end_dim)
 
-        proj_query = proj_query.permute(0, 2, 1) # n_heads*B*C'' X N X C'
+        proj_key = proj_key.transpose(2, 1) # n_heads*B X (k_k * N) X C'
 
-        energy = torch.bmm(proj_query,proj_key) # transpose check # n_heads*B*C'' X N X N
+        energy = torch.bmm(proj_query,proj_key) # transpose check # n_heads*B X (k_q * N) X (k_k * N)
 
         # Mask out unwanted attentions
         if mask is not None:
             energy[..., ~mask] = -torch.inf
 
-        attention = self.softmax(energy) # n_heads*B X N X N
+        attention = self.softmax(energy) # n_heads*B X (k_q * N) X (k_k * N)
 
-        out = torch.bmm(proj_value, attention.permute(0, 2, 1)) # n_heads*B X OC X N
+        out = torch.bmm(attention.transpose(2, 1), proj_value) # n_heads*B X (k_q * N) X OC
 
         # Final output reshape
-        out = out.view(self.n_heads*B, self.y_out_channels//self.n_heads, K, H*W) # [n_heads*B X OC X K X N]
+        out = out.view(-1, K, H*W, self.y_out_channels//self.n_heads) # [n_heads*B X K X N X OC]
 
-        out = split_cat(out, B, 0, -1) # [n_heads X B X OC X K X N]
+        out = split_cat(out, B, 0, -1) # [n_heads X B X k_q X N X OC]
 
         if self.residual:
             if self.projection is not None:
-                y = self.projection(y).view(B, K, -1, H*W).permute(0, 2, 1, 3) # B X OC X K X W*H
-                y = y.flatten(st_dim, end_dim) # [B*OC X K X W*H] | # [B X OC*K X W*H]
+                x = self.projection(x).view(B, K, -1, H*W).transpose(2, 1) # B X k_q X W*H X OC
 
-            y = y.unsqueeze(dim=0).repeat(self.n_heads, 1, 1, 1, 1) # [n_head X B X OC X K X N]
+            x = x.unsqueeze(dim=0).repeat(self.n_heads, 1, 1, 1, 1) # [n_head X B X K X N X OC]
 
-            out = (self.gamma*out + y)/(1 + self.gamma)
+            if self.gamma is None:
+                raise ValueError('Trying to use gamma variable, which is not defined for this instance.')
 
-        out = out.permute(1, 0, 3, 2, 4).view(B, self.n_heads, self.y_out_channels, H, W) # [B X n_heads X K X OC X H X W]
+            out = (self.gamma*out + x)/(1 + self.gamma)
+
+        out = out.permute(1, 0, 2, 4, 3).view(B, self.n_heads, self.y_out_channels, H, W) # [B X n_heads X k_q X OC X H X W]
 
         if final_squeeze:
             out = out.squeeze(dim=2) # [B X n_heads X OC X H X W]
@@ -198,7 +206,7 @@ class MultiHeadAttention1d(nn.Module):
         self.softmax = nn.Softmax(dim=-1)
 
     def extract_qkv(self, x: torch.Tensor, y: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        q, k, v = self.query_conv(x), self.key_conv(x), self.value_conv(y) # [B*k X (C*n_heads | OC*n_heads) X N]
+        q, k, v = self.query_conv(x), self.key_conv(y), self.value_conv(y) # [B*k X (C*n_heads | OC*n_heads) X N]
         return q, k, v
 
     def forward(self, x: torch.Tensor, y: torch.Tensor,
@@ -208,8 +216,8 @@ class MultiHeadAttention1d(nn.Module):
                 mask: torch.Tensor | None = None) -> torch.Tensor:
         """
             inputs :
-                x : input feature maps( B X K X C X N)
-                y : feature map attention to be applied
+                x : input feature maps( B X k_q X C X N)
+                y : feature map attention to be applied( B X k_v X C X N)
             returns :
                 out : self attention value or + input feature
         """
@@ -223,17 +231,21 @@ class MultiHeadAttention1d(nn.Module):
             y = y.unsqueeze(dim=1)
             final_squeeze = True
 
-        assert(x.ndim == 4 and y.ndim == 4)
+        if not (x.ndim == 4 and y.ndim == 4):
+            raise ValueError(f'Got {x.ndim = } and {y.ndim = } should be 4')
 
         b, k, c, n = x.size()
         B, K, C, N = y.size()
 
-        assert(b == B and k == K)
+        if not (b == B):
+            raise ValueError(f'Batch size of both input doesn\'t match, given {b = } and {B = }')
 
         x, y = x.view(b*k, c, n), y.view(B*K, c, N)
 
         if n != N:
-            assert(self.interpolation_mode is not None)
+            if (self.interpolation_mode is None):
+                raise ValueError("Interpolation model required, but not allowed in this instance.")
+
             x = interpolate(x, N, mode=self.interpolation_mode) # [B, k, c, N]
 
         if (proj_query is None or proj_key is None or proj_value is None):
@@ -245,17 +257,17 @@ class MultiHeadAttention1d(nn.Module):
                     proj_key.view(B, k, self.out_channels, N), \
                         proj_value.view(B, K, self.y_out_channels, N)
 
-        # [B X (C/r)*n_heads X k X N], [B X (C/r)*n_heads X k X N], [B X (OC)*n_heads X K X N]
+        # [B X k X N X (C/r)*n_heads], [B X k X N X (C/r)*n_heads], [B X K X N X (OC)*n_heads]
         proj_query, proj_key, proj_value = \
-            proj_query.permute(0, 2, 1, 3), \
-                proj_key.permute(0, 2, 1, 3), \
-                    proj_value.permute(0, 2, 1, 3)
+            proj_query.transpose(2, 3), \
+                proj_key.transpose(2, 3), \
+                    proj_value.transpose(2, 3)
 
         if self.n_heads != 1:
             split_size = [self.out_channels//self.n_heads, self.out_channels//self.n_heads, self.y_out_channels//self.n_heads]
-            # n_heads*B X (C/r) X k X N, n_heads*B X (C/r) X k X N, n_heads*B X OC X K X N
+            # n_heads*B X k_q X N X (C/r), n_heads*B X k_k X N X (C/r), n_heads*B X k_v == k_k X N X OC
             proj_query, proj_key, proj_value = \
-                split_cat(proj_query, split_size[0], 1, 0), split_cat(proj_key, split_size[1], 1, 0), split_cat(proj_value, split_size[2], 1, 0)
+                split_cat(proj_query, split_size[0], -1, 0), split_cat(proj_key, split_size[1], -1, 0), split_cat(proj_value, split_size[2], -1, 0)
 
         if self.chxa:
             st_dim, end_dim = 1, 2
@@ -267,29 +279,31 @@ class MultiHeadAttention1d(nn.Module):
                 proj_key.flatten(st_dim, end_dim), \
                     proj_value.flatten(st_dim, end_dim)
 
-        proj_query = proj_query.permute(0, 2, 1) # n_heads*B X N X (C/r)
+        proj_key = proj_key.transpose(2, 3) # n_heads*B X (C/r) X (k_k * N)
 
-        energy = torch.bmm(proj_query,proj_key) # transpose check # n_heads*B X N X N
+        energy = torch.bmm(proj_query,proj_key) # transpose check # n_heads*B X (k_q * N) X (k_k * N)
 
         # Mask out unwanted attentions
         if mask is not None:
-            energy[~mask] = -torch.inf
+            energy[..., ~mask] = -torch.inf
 
-        attention = self.softmax(energy) # n_heads*B X N X N
+        attention = self.softmax(energy) # n_heads*B X (k_q * N) X (k_k * N)
 
-        out = torch.bmm(proj_value, attention.permute(0, 2, 1)) # n_heads*B X OC X N
+        out = torch.bmm(attention.transpose(2, 1), proj_value) # n_heads*B X (k_q * N) X OC
 
         # Final output reshape
-        out = out.view(self.n_heads*B, self.y_out_channels//self.n_heads, K, N) # [n_heads*B X OC X K X N]
+        out = out.view(self.n_heads*B, K, N, self.y_out_channels//self.n_heads) # [n_heads*B X k_q X N X OC]
 
-        out = split_cat(out, B, 0, -1) # [n_heads X B X OC X K X N]
+        out = split_cat(out, B, 0, -1) # [n_heads X B X K X N X OC]
 
         if self.residual:
             if self.projection is not None:
-                y = self.projection(y).view(B, K, -1, N).permute(0, 2, 1, 3) # B X OC X K X W*H
-                y = y.flatten(st_dim, end_dim) # [B*OC X K X W*H] | # [B X OC*K X W*H]
+                y = self.projection(y).view(B, K, -1, N).transpose(2, 1) # B X K X W*H X OC
 
-            y = y.unsqueeze(dim=0).repeat(self.n_heads, 1, 1, 1, 1) # [n_head X B X OC X K X N]
+            y = y.unsqueeze(dim=0).repeat(self.n_heads, 1, 1, 1, 1) # [n_head X B X K X N X OC]
+
+            if self.gamma is None:
+                raise ValueError('Trying to use gamma variable, which is not defined for this instance.')
 
             out = (self.gamma*out + y)/(1 + self.gamma)
 

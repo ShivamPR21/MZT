@@ -1,9 +1,9 @@
-from typing import Optional
-
 import torch
 
 
-def split_cat(input: torch.Tensor, split_size:int, split_dim:int, cat_dim:Optional[int]):
+def split_cat(input: torch.Tensor, split_size:int, split_dim:int, cat_dim:int | None):
+    if split_dim == -1:
+        split_dim = input.ndim - 1
 
     if cat_dim == -1:
         split_dim += 1
