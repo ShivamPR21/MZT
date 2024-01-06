@@ -12,7 +12,7 @@ class MultiHeadGraphAttentionLinear(MultiHeadAttentionLinear):
         super().__init__(in_dim, out_dim, y_in_dim, y_out_dim, n_heads, residual, interpolation_mode)
         self.db = dynamic_batching # Allows dynamic batching for efficient compute
 
-    def forward(self, x: torch.Tensor, y: torch.Tensor, node_group_sizes: np.ndarray | List[int]) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, y: torch.Tensor, node_group_sizes: np.ndarray | List[int], mask: torch.Tensor | None = None) -> torch.Tensor:
         # x -> [N, in_dim]
         # y -> [N, in_dim]
         # node_group_sizes -> [n.......]
@@ -36,7 +36,7 @@ class MultiHeadGraphAttentionLinear(MultiHeadAttentionLinear):
                 b = x_.shape[0]//uln
                 x_, y_ = x_.view((b, uln, x_.shape[1])), y_.view((b, uln, y_.shape[1]))
 
-                res = super().forward(x_, y_).permute(0, 2, 1, 3).flatten(0, 1)
+                res = super().forward(x_, y_, mask=mask).permute(0, 2, 1, 3).flatten(0, 1)
                 result[idxs, :, :] = res
         else:
             q, k, v = super().extract_qkv(x, y) # Extract q, k, v from base attention class
@@ -53,7 +53,7 @@ class MultiHeadGraphAttentionLinear(MultiHeadAttentionLinear):
 
             for i in range(len(node_group_sizes)):
                 result.append(
-                    super().forward(x[i], y[i], q[i], k[i], v[i]).permute(0, 2, 1, 3).flatten(0, 1)
+                    super().forward(x[i], y[i], q[i], k[i], v[i], mask=mask).permute(0, 2, 1, 3).flatten(0, 1)
                 ) # [k, n_heads, ON]
 
             result = torch.cat(result, dim=0) # [N, n_heads, ON]
@@ -72,8 +72,8 @@ class MultiHeadSelfGraphAttentionLinear(MultiHeadGraphAttentionLinear):
                  residual: bool = True, interpolation_mode: str | None = 'nearest', dynamic_batching : bool = False):
         super().__init__(in_dim, out_dim, in_dim, out_dim, n_heads, residual, interpolation_mode, dynamic_batching)
 
-    def forward(self, x: torch.Tensor, node_group_sizes: np.ndarray) -> torch.Tensor:
-        return super().forward(x, x, node_group_sizes)
+    def forward(self, x: torch.Tensor, node_group_sizes: np.ndarray, mask: torch.Tensor | None = None) -> torch.Tensor:
+        return super().forward(x, x, node_group_sizes, mask)
 
 class SelfGraphAttentionLinear(MultiHeadSelfGraphAttentionLinear):
 
@@ -81,5 +81,5 @@ class SelfGraphAttentionLinear(MultiHeadSelfGraphAttentionLinear):
                  residual: bool = True, dynamic_batching : bool = False):
         super().__init__(in_dim, out_dim, 1, residual, None, dynamic_batching)
 
-    def forward(self, x: torch.Tensor, node_group_sizes: np.ndarray) -> torch.Tensor:
-        return super().forward(x, node_group_sizes)
+    def forward(self, x: torch.Tensor, node_group_sizes: np.ndarray, mask: torch.Tensor | None = None) -> torch.Tensor:
+        return super().forward(x, node_group_sizes, mask)

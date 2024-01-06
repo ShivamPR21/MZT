@@ -55,7 +55,8 @@ class MultiHeadAttention2d(nn.Module):
     def forward(self, x: torch.Tensor, y: torch.Tensor,
                 proj_query: torch.Tensor | None = None,
                 proj_key: torch.Tensor | None = None,
-                proj_value: torch.Tensor | None = None) -> torch.Tensor:
+                proj_value: torch.Tensor | None = None,
+                mask: torch.Tensor | None = None) -> torch.Tensor:
         """
             inputs :
                 x : input feature maps( B X k X C X W X H)
@@ -120,6 +121,11 @@ class MultiHeadAttention2d(nn.Module):
         proj_query = proj_query.permute(0, 2, 1) # n_heads*B*C'' X N X C'
 
         energy = torch.bmm(proj_query,proj_key) # transpose check # n_heads*B*C'' X N X N
+
+        # Mask out unwanted attentions
+        if mask is not None:
+            energy[..., ~mask] = -torch.inf
+
         attention = self.softmax(energy) # n_heads*B X N X N
 
         out = torch.bmm(proj_value, attention.permute(0, 2, 1)) # n_heads*B X OC X N
@@ -198,7 +204,8 @@ class MultiHeadAttention1d(nn.Module):
     def forward(self, x: torch.Tensor, y: torch.Tensor,
                 proj_query: torch.Tensor | None = None,
                 proj_key: torch.Tensor | None = None,
-                proj_value: torch.Tensor | None = None) -> torch.Tensor:
+                proj_value: torch.Tensor | None = None,
+                mask: torch.Tensor | None = None) -> torch.Tensor:
         """
             inputs :
                 x : input feature maps( B X K X C X N)
@@ -263,6 +270,11 @@ class MultiHeadAttention1d(nn.Module):
         proj_query = proj_query.permute(0, 2, 1) # n_heads*B X N X (C/r)
 
         energy = torch.bmm(proj_query,proj_key) # transpose check # n_heads*B X N X N
+
+        # Mask out unwanted attentions
+        if mask is not None:
+            energy[~mask] = -torch.inf
+
         attention = self.softmax(energy) # n_heads*B X N X N
 
         out = torch.bmm(proj_value, attention.permute(0, 2, 1)) # n_heads*B X OC X N
@@ -307,8 +319,8 @@ class MultiHeadSelfAttention2d(MultiHeadAttention2d):
                  channel_cross_attention: bool = False):
         super().__init__(in_channels, out_channels, None, None, n_heads, residual, kernel_size, None, channel_cross_attention)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return super().forward(x, x)
+    def forward(self, x: torch.Tensor, mask: torch.Tensor | None = None) -> torch.Tensor:
+        return super().forward(x, x, mask=mask)
 
 class MultiHeadSelfAttention1d(MultiHeadAttention1d):
 
@@ -321,5 +333,5 @@ class MultiHeadSelfAttention1d(MultiHeadAttention1d):
                  channel_cross_attention: bool = False):
         super().__init__(in_channels, out_channels, None, None, n_heads, residual, kernel_size, None, channel_cross_attention)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return super().forward(x, x)
+    def forward(self, x: torch.Tensor, mask: torch.Tensor | None = None) -> torch.Tensor:
+        return super().forward(x, x, mask=mask)

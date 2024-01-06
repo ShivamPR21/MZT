@@ -51,7 +51,8 @@ class MultiHeadAttentionLinear(nn.Module):
     def forward(self, x: torch.Tensor, y: torch.Tensor,
                 proj_query: torch.Tensor | None = None,
                 proj_key: torch.Tensor | None = None,
-                proj_value: torch.Tensor | None = None) -> torch.Tensor:
+                proj_value: torch.Tensor | None = None,
+                mask: torch.Tensor | None = None) -> torch.Tensor:
         # trunk-ignore(ruff/D401)
         """
             inputs :
@@ -92,6 +93,11 @@ class MultiHeadAttentionLinear(nn.Module):
         proj_query = proj_query.transpose(2, 1) # n_heads*B X N X k
 
         energy = torch.bmm(proj_query,proj_key) # transpose check # n_heads*B X N X N
+
+        # Mask out unwanted attentions
+        if mask is not None:
+            energy[~mask] = -torch.inf
+
         attention = self.softmax(energy) # n_heads*B X N X N
 
         if self.out_dim != self.y_out_dim:
@@ -132,8 +138,9 @@ class MultiHeadSelfAttentionLinear(MultiHeadAttentionLinear):
         super().__init__(in_dim, out_dim, None, None, n_heads, residual, None)
 
     def forward(self, x: torch.Tensor, proj_query: torch.Tensor | None = None,
-                proj_key: torch.Tensor | None = None, proj_value: torch.Tensor | None = None) -> torch.Tensor:
-        return super().forward(x, x, proj_query, proj_key, proj_value)
+                proj_key: torch.Tensor | None = None, proj_value: torch.Tensor | None = None,
+                mask: torch.Tensor | None = None) -> torch.Tensor:
+        return super().forward(x, x, proj_query, proj_key, proj_value, mask)
 
 class SelfAttentionLinear(MultiHeadSelfAttentionLinear):
 
@@ -141,5 +148,6 @@ class SelfAttentionLinear(MultiHeadSelfAttentionLinear):
         super().__init__(in_dim, out_dim, 1, residual)
 
     def forward(self, x: torch.Tensor, proj_query: torch.Tensor | None = None,
-                proj_key: torch.Tensor | None = None, proj_value: torch.Tensor | None = None) -> torch.Tensor:
-        return super().forward(x, proj_query, proj_key, proj_value)
+                proj_key: torch.Tensor | None = None, proj_value: torch.Tensor | None = None,
+                mask: torch.Tensor | None = None) -> torch.Tensor:
+        return super().forward(x, proj_query, proj_key, proj_value, mask)
