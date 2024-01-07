@@ -10,10 +10,10 @@ class SelfAttention2d(MultiHeadSelfAttention2d):
         out_channels: int | None = None,
         residual: bool = True,
         kernel_size: int | Tuple[int, int] = 1,
-        channel_cross_attention: bool = False,
+        attention_type: int = 0,
     ):
         super().__init__(
-            in_channels, out_channels, 1, residual, kernel_size, channel_cross_attention
+            in_channels, out_channels, 1, residual, kernel_size, attention_type
         )
 
 
@@ -24,8 +24,8 @@ class SelfAttention1d(MultiHeadSelfAttention1d):
         out_channels: int | None = None,
         residual: bool = True,
         kernel_size: int = 1,
-        channel_cross_attention: bool = False,
+        attention_type: int = 0,
     ):
         super().__init__(
-            in_channels, out_channels, 1, residual, kernel_size, channel_cross_attention
+            in_channels, out_channels, 1, residual, kernel_size, attention_type
         )

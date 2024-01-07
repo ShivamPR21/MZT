@@ -67,12 +67,15 @@ class MultiHeadAttentionLinear(nn.Module):
         q, k, v = self.query(x), self.key(y), self.value(y)
         return q, k, v
 
-    def forward(self, x: torch.Tensor, y: torch.Tensor,
-                proj_query: torch.Tensor | None = None,
-                proj_key: torch.Tensor | None = None,
-                proj_value: torch.Tensor | None = None,
-                mask: torch.Tensor | None = None) -> torch.Tensor:
-        # trunk-ignore(ruff/D401)
+    def forward(
+        self,
+        x: torch.Tensor,
+        y: torch.Tensor,
+        proj_query: torch.Tensor | None = None,
+        proj_key: torch.Tensor | None = None,
+        proj_value: torch.Tensor | None = None,
+        mask: torch.Tensor | None = None,
+    ) -> torch.Tensor:
         """
         inputs :
             x : input feature maps( B X k_q X N) or ( B X N)
@@ -172,9 +175,14 @@ class MultiHeadSelfAttentionLinear(MultiHeadAttentionLinear):
     ):
         super().__init__(in_dim, out_dim, None, None, n_heads, residual, None)
 
-    def forward(self, x: torch.Tensor, proj_query: torch.Tensor | None = None,
-                proj_key: torch.Tensor | None = None, proj_value: torch.Tensor | None = None,
-                mask: torch.Tensor | None = None) -> torch.Tensor:
+    def forward(
+        self,
+        x: torch.Tensor,
+        proj_query: torch.Tensor | None = None,
+        proj_key: torch.Tensor | None = None,
+        proj_value: torch.Tensor | None = None,
+        mask: torch.Tensor | None = None,
+    ) -> torch.Tensor:
         return super().forward(x, x, proj_query, proj_key, proj_value, mask)
 
 
@@ -182,7 +190,12 @@ class SelfAttentionLinear(MultiHeadSelfAttentionLinear):
     def __init__(self, in_dim: int, out_dim: int | None = None, residual: bool = True):
         super().__init__(in_dim, out_dim, 1, residual)
 
-    def forward(self, x: torch.Tensor, proj_query: torch.Tensor | None = None,
-                proj_key: torch.Tensor | None = None, proj_value: torch.Tensor | None = None,
-                mask: torch.Tensor | None = None) -> torch.Tensor:
+    def forward(
+        self,
+        x: torch.Tensor,
+        proj_query: torch.Tensor | None = None,
+        proj_key: torch.Tensor | None = None,
+        proj_value: torch.Tensor | None = None,
+        mask: torch.Tensor | None = None,
+    ) -> torch.Tensor:
         return super().forward(x, proj_query, proj_key, proj_value, mask)

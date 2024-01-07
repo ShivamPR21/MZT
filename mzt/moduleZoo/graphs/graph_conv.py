@@ -152,9 +152,7 @@ class GraphConv(LinearNormActivation):
                 for x_ in x.unsqueeze(dim=0).split(node_group_sizes, dim=1)
             ],
             dim=0,
-        ).squeeze(
-            dim=0
-        )  # [N, k, d]
+        ).squeeze(dim=0)  # [N, k, d]
 
         if source_device != x.device:
             x = x.to(source_device)
