@@ -166,21 +166,21 @@ class MultiHeadAttention2d(nn.Module):
                 self.y_out_channels // self.n_heads,
             ]
 
-            # n_heads*B X k_q X N X (C/r), n_heads*B X k_k X N X (C/r), n_heads*B X k_v == k_k X N X OC
+            # n_heads X B X k_q X N X (C/r), n_heads X B X k_k X N X (C/r), n_heads X B X k_v == k_k X N X OC
             proj_query, proj_key, proj_value = (
-                split_cat(proj_query, split_size[0], -1, 0),
-                split_cat(proj_key, split_size[1], -1, 0),
-                split_cat(proj_value, split_size[2], -1, 0),
+                split_cat(proj_query, split_size[0], -1, -1),
+                split_cat(proj_key, split_size[1], -1, -1),
+                split_cat(proj_value, split_size[2], -1, -1),
             )
 
         # TODO@ShivamPR21: Added new level of attention, check for integrity
         if self.xa == 0:
-            st_dim, end_dim = 0, 1
+            st_dim, end_dim = 1, 2
             if k != K:
                 raise ValueError(
                     "For no cross attention, the elements in x and y should be same s.t. k == K"
                 )
-            # n_heads*B*k_q X N X (C/r), n_heads*B*k_k X N X (C/r), n_heads*B*(k_v == k_k) X N X OC
+            # n_heads X B*k_q X N X (C/r), n_heads X B*k_k X N X (C/r), n_heads X B*(k_v == k_k) X N X OC
             proj_query, proj_key, proj_value = (
                 proj_query.flatten(st_dim, end_dim),
                 proj_key.flatten(st_dim, end_dim),
@@ -191,8 +191,8 @@ class MultiHeadAttention2d(nn.Module):
                     "Check for correct mask size, according to the `attention_type` requested."
                 )
         elif self.xa == 1:
-            st_dim, end_dim = 1, 2
-            # n_heads*B X (k_q*N) X (C/r), n_heads*B X (k_k*N) X (C/r), n_heads*B X ((k_v == k_k)*N) X OC
+            st_dim, end_dim = 2, 3
+            # n_heads X B X (k_q*N) X (C/r), n_heads X B X (k_k*N) X (C/r), n_heads X B X ((k_v == k_k)*N) X OC
             proj_query, proj_key, proj_value = (
                 proj_query.flatten(st_dim, end_dim),
                 proj_key.flatten(st_dim, end_dim),
@@ -203,48 +203,52 @@ class MultiHeadAttention2d(nn.Module):
                     "Check for correct mask size, according to the `attention_type` requested."
                 )
         else:
-            st_dim, end_dim = 0, 1
-            # n_heads*B*N X (k_q) X (C/r), n_heads*B*N X (k_k) X (C/r), n_heads*B*N X (k_v == k_k) X OC
+            st_dim, end_dim = 1, 2
+            # n_heads X B*N X (k_q) X (C/r), n_heads X B*N X (k_k) X (C/r), n_heads X B*N X (k_v == k_k) X OC
             proj_query, proj_key, proj_value = (
-                proj_query.transpose(2, 1).flatten(st_dim, end_dim),
-                proj_key.transpose(2, 1).flatten(st_dim, end_dim),
-                proj_value.transpose(2, 1).flatten(st_dim, end_dim),
+                proj_query.transpose(3, 2).flatten(st_dim, end_dim),
+                proj_key.transpose(3, 2).flatten(st_dim, end_dim),
+                proj_value.transpose(3, 2).flatten(st_dim, end_dim),
             )
             if mask is not None and mask.shape[-2:] != [k, K]:
                 raise ValueError(
                     "Check for correct mask size, according to the `attention_type` requested."
                 )
 
-        # [n_heads*B, C', (k_k * N)] or [n_heads*B*k_k, C', (N)] or [n_heads*B*N, C', (k_k)]
-        proj_key = proj_key.transpose(2, 1)
+        # [n_heads, B, C', (k_k * N)] or [n_heads, B*k_k, C', (N)] or [n_heads, B*N, C', (k_k)]
+        proj_key = proj_key.transpose(3, 2)
 
-        # n_heads*B X (k_q * N) X (k_k * N) or n_heads*B*(k_q == k_k) X (N) X (N) or n_heads*B*N X (k_q) X (k_k)
+        # n_heads X B X (k_q * N) X (k_k * N) or n_heads X B*(k_q == k_k) X (N) X (N) or n_heads X B*N X (k_q) X (k_k)
         energy = torch.bmm(proj_query, proj_key)  # transpose check
 
         # Mask out unwanted attentions
         if mask is not None:
             # mask is of shape =>
-            # (k_q * N) X (k_k * N) or (N) X (N) or (k_q) X (k_k)
-            energy[..., ~mask] = -torch.inf
+            # n_heads X (k_q * N) X (k_k * N) or n_heads X (N) X (N) or n_heads X (k_q) X (k_k)
+            energy = energy.transpose(1, 0)
+            energy[..., ~mask] = -torch.inf  # TODO@ShivamPR21: Check for integrity
+            energy = energy.transpose(1, 0)
 
-        # n_heads*B X (k_q * N) X (k_k * N) or n_heads*B*(k_q == k_k) X (N) X (N) or n_heads*B*N X (k_q) X (k_k)
+        # n_heads X B X (k_q * N) X (k_k * N) or n_heads X B*(k_q == k_k) X (N) X (N) or n_heads X B*N X (k_q) X (k_k)
         attention = self.softmax(energy)
 
-        # [n_heads*B, (k_q * N), OC] or [n_heads*B*k_k, N, OC] or [n_heads*B*N, (k_q), OC]
+        # [n_heads, B, (k_q * N), OC] or [n_heads, B*k_k, N, OC] or [n_heads, B*N, (k_q), OC]
         out = torch.bmm(attention, proj_value)
 
         # Final output reshape
-        # [n_heads*B X k X N X OC]
+        # [n_heads X B X k X N X OC]
         if self.xa == 2:
-            out = out.view(-1, N, k, self.y_out_channels // self.n_heads).transpose(
-                2, 1
-            )  # [n_heads*B X N X k_q X OC] => [n_heads*B X k_q X N X OC]
+            out = out.view(
+                self.n_heads, -1, N, k, self.y_out_channels // self.n_heads
+            ).transpose(
+                3, 2
+            )  # [n_heads X B X N X k_q X OC] => [n_heads X B X k_q X N X OC]
         else:
             out = out.view(
-                -1, k, N, self.y_out_channels // self.n_heads
-            )  # [n_heads*B X k_q X N X OC]
+                self.n_heads, -1, k, N, self.y_out_channels // self.n_heads
+            )  # [n_heads X B X k_q X N X OC]
 
-        out = split_cat(out, B, 0, -1)  # [n_heads X B X k_q X N X OC]
+        # out = split_cat(out, B, 0, -1)  # [n_heads X B X k_q X N X OC]
 
         if self.residual:
             if self.projection is not None:
@@ -432,85 +436,96 @@ class MultiHeadAttention1d(nn.Module):
                 self.out_channels // self.n_heads,
                 self.y_out_channels // self.n_heads,
             ]
-            # n_heads*B X k_q X N X (C/r), n_heads*B X k_k X N X (C/r), n_heads*B X k_v == k_k X N X OC
+            # n_heads X B X k_q X N X (C/r), n_heads X B X k_k X N X (C/r), n_heads X B X k_v == k_k X N X OC
             proj_query, proj_key, proj_value = (
-                split_cat(proj_query, split_size[0], -1, 0),
-                split_cat(proj_key, split_size[1], -1, 0),
-                split_cat(proj_value, split_size[2], -1, 0),
+                split_cat(proj_query, split_size[0], -1, -1),
+                split_cat(proj_key, split_size[1], -1, -1),
+                split_cat(proj_value, split_size[2], -1, -1),
             )
 
         # TODO@ShivamPR21: Added new level of attention, check for integrity
         if self.xa == 0:
-            st_dim, end_dim = 0, 1
+            st_dim, end_dim = 1, 2
             if k != K:
                 raise ValueError(
                     "For no cross attention, the elements in x and y should be same s.t. k == K"
                 )
-            # n_heads*B*k_q X N X (C/r), n_heads*B*k_k X N X (C/r), n_heads*B*(k_v == k_k) X N X OC
+            # n_heads X B*k_q X N X (C/r), n_heads X B*k_k X N X (C/r), n_heads X B*(k_v == k_k) X N X OC
             proj_query, proj_key, proj_value = (
                 proj_query.flatten(st_dim, end_dim),
                 proj_key.flatten(st_dim, end_dim),
                 proj_value.flatten(st_dim, end_dim),
             )
-            if mask is not None and mask.shape[-2:] != [N, N]:
+            if mask is not None and (
+                mask.shape[-2:] != [N, N] or mask.shape[:] != [self.n_heads, N, N]
+            ):
                 raise ValueError(
                     "Check for correct mask size, according to the `attention_type` requested."
                 )
         elif self.xa == 1:
-            st_dim, end_dim = 1, 2
-            # n_heads*B X (k_q*N) X (C/r), n_heads*B X (k_k*N) X (C/r), n_heads*B X ((k_v == k_k)*N) X OC
+            st_dim, end_dim = 2, 3
+            # n_heads X B X (k_q*N) X (C/r), n_heads X B X (k_k*N) X (C/r), n_heads X B X ((k_v == k_k)*N) X OC
             proj_query, proj_key, proj_value = (
                 proj_query.flatten(st_dim, end_dim),
                 proj_key.flatten(st_dim, end_dim),
                 proj_value.flatten(st_dim, end_dim),
             )
-            if mask is not None and mask.shape[-2:] != [k * N, K * N]:
+            if mask is not None and (
+                mask.shape[-2:] != [k * N, K * N]
+                or mask.shape[:] != [self.n_heads, k * N, K * N]
+            ):
                 raise ValueError(
                     "Check for correct mask size, according to the `attention_type` requested."
                 )
         else:
-            st_dim, end_dim = 0, 1
-            # n_heads*B*N X (k_q) X (C/r), n_heads*B*N X (k_k) X (C/r), n_heads*B*N X (k_v == k_k) X OC
+            st_dim, end_dim = 1, 2
+            # n_heads X B*N X (k_q) X (C/r), n_heads X B*N X (k_k) X (C/r), n_heads X B*N X (k_v == k_k) X OC
             proj_query, proj_key, proj_value = (
-                proj_query.transpose(2, 1).flatten(st_dim, end_dim),
-                proj_key.transpose(2, 1).flatten(st_dim, end_dim),
-                proj_value.transpose(2, 1).flatten(st_dim, end_dim),
+                proj_query.transpose(3, 2).flatten(st_dim, end_dim),
+                proj_key.transpose(3, 2).flatten(st_dim, end_dim),
+                proj_value.transpose(3, 2).flatten(st_dim, end_dim),
             )
-            if mask is not None and mask.shape[-2:] != [k, K]:
+            if mask is not None and (
+                mask.shape[-2:] != [k, K] or mask.shape[:] != [self.n_heads, k, K]
+            ):
                 raise ValueError(
                     "Check for correct mask size, according to the `attention_type` requested."
                 )
 
-        # [n_heads*B, C', (k_k * N)] or [n_heads*B*k_k, C', (N)] or [n_heads*B*N, C', (k_k)]
-        proj_key = proj_key.transpose(2, 1)
+        # [n_heads, B, C', (k_k * N)] or [n_heads, B*k_k, C', (N)] or [n_heads, B*N, C', (k_k)]
+        proj_key = proj_key.transpose(3, 2)
 
-        # n_heads*B X (k_q * N) X (k_k * N) or n_heads*B*(k_q == k_k) X (N) X (N) or n_heads*B*N X (k_q) X (k_k)
+        # n_heads X B X (k_q * N) X (k_k * N) or n_heads X B*(k_q == k_k) X (N) X (N) or n_heads X B*N X (k_q) X (k_k)
         energy = torch.bmm(proj_query, proj_key)  # transpose check
 
         # Mask out unwanted attentions
         if mask is not None:
             # mask is of shape =>
-            # (k_q * N) X (k_k * N) or (N) X (N) or (k_q) X (k_k)
-            energy[..., ~mask] = -torch.inf
+            # n_heads X (k_q * N) X (k_k * N) or n_heads X (N) X (N) or n_heads X (k_q) X (k_k)
+            energy = energy.transpose(1, 0)
+            energy[..., ~mask] = -torch.inf  # TODO@ShivamPR21: Check for integrity
+            energy = energy.transpose(1, 0)
 
-        # n_heads*B X (k_q * N) X (k_k * N) or n_heads*B*(k_q == k_k) X (N) X (N) or n_heads*B*N X (k_q) X (k_k)
+        # n_heads X B X (k_q * N) X (k_k * N) or n_heads X B*(k_q == k_k) X (N) X (N) or n_heads X B*N X (k_q) X (k_k)
         attention = self.softmax(energy)
 
-        # [n_heads*B, (k_q * N), OC] or [n_heads*B*k_k, N, OC] or [n_heads*B*N, (k_q), OC]
+        # [n_heads, B, (k_q * N), OC] or [n_heads, B*k_k, N, OC] or [n_heads, B*N, (k_q), OC]
         out = torch.bmm(attention, proj_value)
 
         # Final output reshape
-        # [n_heads*B X k X N X OC]
+        # [n_heads X B X k X N X OC]
         if self.xa == 2:
-            out = out.view(-1, N, k, self.y_out_channels // self.n_heads).transpose(
-                2, 1
-            )  # [n_heads*B X N X k_q X OC] => [n_heads*B X k_q X N X OC]
+            out = out.view(
+                self.n_heads, -1, N, k, self.y_out_channels // self.n_heads
+            ).transpose(
+                3, 2
+            )  # [n_heads X B X N X k_q X OC] => [n_heads X B X k_q X N X OC]
         else:
             out = out.view(
-                -1, k, N, self.y_out_channels // self.n_heads
-            )  # [n_heads*B X k_q X N X OC]
+                self.n_heads, -1, k, N, self.y_out_channels // self.n_heads
+            )  # [n_heads X B X k_q X N X OC]
 
-        out = split_cat(out, B, 0, -1)  # [n_heads X B X k_q X N X OC]
+        # out = split_cat(out, B, 0, -1)  # [n_heads X B X k_q X N X OC]
 
         if self.residual:
             if self.projection is not None:
