@@ -114,28 +114,28 @@ class MultiHeadAttentionLinear(nn.Module):
                 self.out_dim // self.n_heads,
                 self.y_out_dim // self.n_heads,
             ]
-            # n_heads*B X k_k X N, n_heads*B X k_q X N, n_heads*B X k_v == k_k X ON
+            # n_heads X B X k_k X N, n_heads X B X k_q X N, n_heads X B X k_v == k_k X ON
             proj_query, proj_key, proj_value = (
-                split_cat(proj_query, split_size[0], 2, 0),
-                split_cat(proj_key, split_size[1], 2, 0),
-                split_cat(proj_value, split_size[2], 2, 0),
+                split_cat(proj_query, split_size[0], -1, -1),
+                split_cat(proj_key, split_size[1], -1, -1),
+                split_cat(proj_value, split_size[2], -1, -1),
             )
 
-        proj_key = proj_key.transpose(2, 1)  # n_heads*B X N X k_k
+        proj_key = proj_key.transpose(3, 2)  # n_heads X B X N X k_k
 
         energy = torch.bmm(
             proj_query, proj_key
-        )  # transpose check # n_heads*B X k_q X k_k
+        )  # transpose check # n_heads X B X k_q X k_k
 
         # Mask out unwanted attentions
         if mask is not None:
-            energy[..., ~mask] = -torch.inf
+            energy = energy.transpose(1, 0)
+            energy[..., ~mask] = -torch.inf  # TODO@ShivamPR21: Check for integrity
+            energy = energy.transpose(1, 0)
 
-        attention = self.softmax(energy)  # n_heads*B X k_q X k_k
+        attention = self.softmax(energy)  # n_heads X B X k_q X k_k
 
-        out = torch.bmm(attention.transpose(2, 1), proj_value)  # n_heads*B X k_q X ON
-
-        out = split_cat(out, B, 0, -1)  # n_heads X B X k_q X ON
+        out = torch.bmm(attention, proj_value)  # n_heads X B X k_q X ON
 
         if self.residual:
             if self.projection is not None:
