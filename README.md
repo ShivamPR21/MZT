@@ -1,5 +1,14 @@
 # ModuleZooTorch
 
+```diff
+- Note: This library is deprecated for a faster and more scalable alternative (i.e. MZX),
+- there will be no further changes in this library.
+```
+
+> The `MZX` library will be released on the following link [MZX](https://github.com/Matroid-ASI/MZX.git)
+
+## MZT Details
+
 Collection of neural-net modules including both general blocks, and those introduced in latest research
 
 > The library is still under development, if you have some cool NN blocks in mind that deserves to be implemented in MZT please don't hesitate to open an issue with feature request, I'll try my best to implement those ASAP.
