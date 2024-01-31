@@ -5,6 +5,7 @@ import torch.nn as nn
 from torch.nn.functional import interpolate
 
 from ..convolution import ConvNormActivation1d, ConvNormActivation2d
+from ..utils import NestedTensor
 from .utils import split_cat
 
 
@@ -98,12 +99,11 @@ class MultiHeadAttention2d(nn.Module):
 
     def forward(
         self,
-        x: torch.Tensor,
-        y: torch.Tensor,
-        proj_query: torch.Tensor | None = None,
-        proj_key: torch.Tensor | None = None,
-        proj_value: torch.Tensor | None = None,
-        mask: torch.Tensor | None = None,
+        x: NestedTensor | torch.Tensor,
+        y: NestedTensor | torch.Tensor,
+        proj_query: NestedTensor | torch.Tensor | None = None,
+        proj_key: NestedTensor | torch.Tensor | None = None,
+        proj_value: NestedTensor | torch.Tensor | None = None,
     ) -> torch.Tensor:
         """
         inputs :
@@ -112,6 +112,9 @@ class MultiHeadAttention2d(nn.Module):
         returns :
             out : self attention value or + input feature
         """
+        mask = x.mask
+        x, y = x.data, y.data
+
         final_squeeze = False
 
         if x.ndim == 4:
@@ -218,21 +221,25 @@ class MultiHeadAttention2d(nn.Module):
         # [n_heads, B, C', (k_k * N)] or [n_heads, B*k_k, C', (N)] or [n_heads, B*N, C', (k_k)]
         proj_key = proj_key.transpose(3, 2)
 
-        # n_heads X B X (k_q * N) X (k_k * N) or n_heads X B*(k_q == k_k) X (N) X (N) or n_heads X B*N X (k_q) X (k_k)
+        proj_query, proj_key, proj_value = (
+            proj_query.flatten(0, 1),  # n_heads * B X , ...
+            proj_key.flatten(0, 1),  # n_heads * B X ...
+            proj_value.flatten(0, 1),  # n_heads * B X ...
+        )
+
+        # n_heads * B X (k_q * N) X (k_k * N) or n_heads * B*(k_q == k_k) X (N) X (N) or n_heads * B*N X (k_q) X (k_k)
         energy = torch.bmm(proj_query, proj_key)  # transpose check
 
         # Mask out unwanted attentions
         if mask is not None:
             # mask is of shape =>
-            # n_heads X (k_q * N) X (k_k * N) or n_heads X (N) X (N) or n_heads X (k_q) X (k_k)
-            energy = energy.transpose(1, 0)
+            # (k_q * N) X (k_k * N) or (N) X (N) or (k_q) X (k_k)
             energy[..., ~mask] = -torch.inf  # TODO@ShivamPR21: Check for integrity
-            energy = energy.transpose(1, 0)
 
-        # n_heads X B X (k_q * N) X (k_k * N) or n_heads X B*(k_q == k_k) X (N) X (N) or n_heads X B*N X (k_q) X (k_k)
+        # n_heads * B X (k_q * N) X (k_k * N) or n_heads * B*(k_q == k_k) X (N) X (N) or n_heads * B*N X (k_q) X (k_k)
         attention = self.softmax(energy)
 
-        # [n_heads, B, (k_q * N), OC] or [n_heads, B*k_k, N, OC] or [n_heads, B*N, (k_q), OC]
+        # [n_heads * B, (k_q * N), OC] or [n_heads * B*k_k, N, OC] or [n_heads * B*N, (k_q), OC]
         out = torch.bmm(attention, proj_value)
 
         # Final output reshape
@@ -368,12 +375,11 @@ class MultiHeadAttention1d(nn.Module):
 
     def forward(
         self,
-        x: torch.Tensor,
-        y: torch.Tensor,
-        proj_query: torch.Tensor | None = None,
-        proj_key: torch.Tensor | None = None,
-        proj_value: torch.Tensor | None = None,
-        mask: torch.Tensor | None = None,
+        x: NestedTensor | torch.Tensor,
+        y: NestedTensor | torch.Tensor,
+        proj_query: NestedTensor | torch.Tensor | None = None,
+        proj_key: NestedTensor | torch.Tensor | None = None,
+        proj_value: NestedTensor | torch.Tensor | None = None,
     ) -> torch.Tensor:
         """
         inputs :
@@ -382,6 +388,9 @@ class MultiHeadAttention1d(nn.Module):
         returns :
             out : self attention value or + input feature
         """
+        mask = x.mask
+        x, y = x.data, y.data
+
         final_squeeze = False
 
         if x.ndim == 3:
@@ -413,15 +422,30 @@ class MultiHeadAttention1d(nn.Module):
 
             x = interpolate(x, N, mode=self.interpolation_mode)  # [B, k, c, N]
 
-        if proj_query is None or proj_key is None or proj_value is None:
-            proj_query, proj_key, proj_value = self.extract_qkv(x, y)
+        # if proj_query is None or proj_key is None or proj_value is None:
+        #     proj_query, proj_key, proj_value = self.extract_qkv(x, y)
 
-            # [B X k X (C/r)*n_heads X N], [B X k X (C/r)*n_heads X N], [B X k X (OC)*n_heads X N]
-            proj_query, proj_key, proj_value = (
-                proj_query.view(B, k, self.out_channels, N),
-                proj_key.view(B, k, self.out_channels, N),
-                proj_value.view(B, K, self.y_out_channels, N),
-            )
+        #     # [B X k X (C/r)*n_heads X N], [B X k X (C/r)*n_heads X N], [B X k X (OC)*n_heads X N]
+        #     proj_query, proj_key, proj_value = (
+        #         proj_query.view(B, k, self.out_channels, N),
+        #         proj_key.view(B, k, self.out_channels, N),
+        #         proj_value.view(B, K, self.y_out_channels, N),
+        #     )
+        if proj_query is None:
+            proj_query = self.query(x)  # [B*k X (C*n_heads | OC*n_heads) X N]
+            proj_query = proj_query.view(
+                B, k, self.out_channels, N
+            )  # [B X k X (C/r)*n_heads X N]
+        if proj_key is None:
+            proj_key = self.key(y)  # [B*k X (C*n_heads | OC*n_heads) X N]
+            proj_key = proj_key.view(
+                B, k, self.out_channels, N
+            )  # [B X k X (C/r)*n_heads X N]
+        if proj_value is None:
+            proj_value = self.value(y)  # [B*k X (C*n_heads | OC*n_heads) X N]
+            proj_value = proj_value.view(
+                B, K, self.y_out_channels, N
+            )  # [B X k X (OC)*n_heads X N]
 
         # [B X k X N X (C/r)*n_heads], [B X k X N X (C/r)*n_heads], [B X K X N X (OC)*n_heads]
         proj_query, proj_key, proj_value = (
@@ -495,16 +519,20 @@ class MultiHeadAttention1d(nn.Module):
         # [n_heads, B, C', (k_k * N)] or [n_heads, B*k_k, C', (N)] or [n_heads, B*N, C', (k_k)]
         proj_key = proj_key.transpose(3, 2)
 
+        proj_query, proj_key, proj_value = (
+            proj_query.flatten(0, 1),  # n_heads * B X ...
+            proj_key.flatten(0, 1),  # n_heads * B X ...
+            proj_value.flatten(0, 1),  # n_heads * B X ...
+        )
+
         # n_heads X B X (k_q * N) X (k_k * N) or n_heads X B*(k_q == k_k) X (N) X (N) or n_heads X B*N X (k_q) X (k_k)
         energy = torch.bmm(proj_query, proj_key)  # transpose check
 
         # Mask out unwanted attentions
         if mask is not None:
             # mask is of shape =>
-            # n_heads X (k_q * N) X (k_k * N) or n_heads X (N) X (N) or n_heads X (k_q) X (k_k)
-            energy = energy.transpose(1, 0)
+            # (k_q * N) X (k_k * N) or (N) X (N) or (k_q) X (k_k)
             energy[..., ~mask] = -torch.inf  # TODO@ShivamPR21: Check for integrity
-            energy = energy.transpose(1, 0)
 
         # n_heads X B X (k_q * N) X (k_k * N) or n_heads X B*(k_q == k_k) X (N) X (N) or n_heads X B*N X (k_q) X (k_k)
         attention = self.softmax(energy)

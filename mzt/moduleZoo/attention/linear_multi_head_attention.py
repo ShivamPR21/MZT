@@ -3,6 +3,7 @@ from typing import List, Optional, Tuple
 import torch
 import torch.nn as nn
 
+from ..utils import NestedTensor, with_pose
 from .utils import split_cat
 
 
@@ -62,20 +63,20 @@ class MultiHeadAttentionLinear(nn.Module):
         self.softmax = nn.Softmax(dim=-1)
 
     def extract_qkv(
-        self, x: torch.Tensor, y: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        q, k, v = self.query(x), self.key(y), self.value(y)
-        return q, k, v
-
-    def forward(
         self,
         x: torch.Tensor,
         y: torch.Tensor,
-        proj_query: torch.Tensor | None = None,
-        proj_key: torch.Tensor | None = None,
-        proj_value: torch.Tensor | None = None,
-        mask: torch.Tensor | None = None,
-    ) -> torch.Tensor:
+        x_pos: torch.Tensor | None = None,
+        y_pos: torch.Tensor | None = None,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        q, k, v = (
+            self.query(with_pose(x, x_pos)),
+            self.key(with_pose(y, y_pos)),
+            self.value(y),
+        )
+        return q, k, v
+
+    def forward(self, x: NestedTensor, y: NestedTensor) -> torch.Tensor:
         """
         inputs :
             x : input feature maps( B X k_q X N) or ( B X N)
@@ -83,6 +84,9 @@ class MultiHeadAttentionLinear(nn.Module):
         returns :
             out : self attention value or + input feature..
         """
+        mask = y.mask[:, :, None] * x.mask[:, None, :]  # B X k_q X k_v
+        x, y, x_pos, y_pos = x.data, y.data, x.pos, y.pos
+
         final_squeeze = False
 
         if x.ndim == 2:
@@ -104,9 +108,8 @@ class MultiHeadAttentionLinear(nn.Module):
                 f"Batch size of both input doesn't match, given {b = } and {B = }"
             )
 
-        if proj_query is None or proj_key is None or proj_value is None:
-            # B X k_q X N * n_heads # B X k_k X N * n_heads # B X k_v == k_k X ON * n_heads
-            proj_query, proj_key, proj_value = self.extract_qkv(x, y)
+        # B X k_q X N * n_heads # B X k_k X N * n_heads # B X k_v == k_k X ON * n_heads
+        proj_query, proj_key, proj_value = self.extract_qkv(x, y, x_pos, y_pos)
 
         if self.n_heads != 1:
             split_size = [
@@ -114,7 +117,7 @@ class MultiHeadAttentionLinear(nn.Module):
                 self.out_dim // self.n_heads,
                 self.y_out_dim // self.n_heads,
             ]
-            # n_heads X B X k_k X N, n_heads X B X k_q X N, n_heads X B X k_v == k_k X ON
+            # n_heads X B X k_q X N, n_heads X B X k_k X N, n_heads X B X k_v == k_k X ON
             proj_query, proj_key, proj_value = (
                 split_cat(proj_query, split_size[0], -1, -1),
                 split_cat(proj_key, split_size[1], -1, -1),
@@ -123,19 +126,26 @@ class MultiHeadAttentionLinear(nn.Module):
 
         proj_key = proj_key.transpose(3, 2)  # n_heads X B X N X k_k
 
+        proj_query, proj_key, proj_value = (
+            proj_query.flatten(0, 1),  # n_heads * B X k_q X N
+            proj_key.flatten(0, 1),  # n_heads * B X k_k X N
+            proj_value.flatten(0, 1),  # n_heads * B X N X k_k
+        )
+
         energy = torch.bmm(
             proj_query, proj_key
-        )  # transpose check # n_heads X B X k_q X k_k
+        )  # transpose check # n_heads * B X k_q X k_k
 
         # Mask out unwanted attentions
         if mask is not None:
-            energy = energy.transpose(1, 0)
+            print(f"{mask.shape = }")
             energy[..., ~mask] = -torch.inf  # TODO@ShivamPR21: Check for integrity
-            energy = energy.transpose(1, 0)
 
-        attention = self.softmax(energy)  # n_heads X B X k_q X k_k
+        attention = self.softmax(energy)  # n_heads * B X k_q X k_k
 
-        out = torch.bmm(attention, proj_value)  # n_heads X B X k_q X ON
+        out = torch.bmm(attention, proj_value)  # n_heads * B X k_q X ON
+
+        out = out.view(self.n_heads, B, k, -1)  # n_heads X B X k_q X ON
 
         if self.residual:
             if self.projection is not None:
@@ -175,27 +185,13 @@ class MultiHeadSelfAttentionLinear(MultiHeadAttentionLinear):
     ):
         super().__init__(in_dim, out_dim, None, None, n_heads, residual, None)
 
-    def forward(
-        self,
-        x: torch.Tensor,
-        proj_query: torch.Tensor | None = None,
-        proj_key: torch.Tensor | None = None,
-        proj_value: torch.Tensor | None = None,
-        mask: torch.Tensor | None = None,
-    ) -> torch.Tensor:
-        return super().forward(x, x, proj_query, proj_key, proj_value, mask)
+    def forward(self, x: NestedTensor) -> torch.Tensor:
+        return super().forward(x, x)
 
 
 class SelfAttentionLinear(MultiHeadSelfAttentionLinear):
     def __init__(self, in_dim: int, out_dim: int | None = None, residual: bool = True):
         super().__init__(in_dim, out_dim, 1, residual)
 
-    def forward(
-        self,
-        x: torch.Tensor,
-        proj_query: torch.Tensor | None = None,
-        proj_key: torch.Tensor | None = None,
-        proj_value: torch.Tensor | None = None,
-        mask: torch.Tensor | None = None,
-    ) -> torch.Tensor:
-        return super().forward(x, proj_query, proj_key, proj_value, mask)
+    def forward(self, x: NestedTensor) -> torch.Tensor:
+        return super().forward(x)
